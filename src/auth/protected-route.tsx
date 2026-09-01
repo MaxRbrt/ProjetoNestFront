@@ -32,7 +32,7 @@ export function RotaProtegida({ children }: PropsDaRotaProtegida) {
 // Pontos pulsando em sequência, sem barra de progresso: a duração da resposta
 // é desconhecida, e uma barra prometeria um avanço que não há como medir.
 // ---------------------------------------------
-function TelaDeVerificacao() {
+export function TelaDeVerificacao() {
   return (
     <div className="verificacao" role="status" aria-live="polite">
       <span className="verificacao__pontos" aria-hidden="true">

@@ -1,7 +1,8 @@
 import { motion } from 'motion/react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import type { ApiClient } from '../../api/client';
 import { filtroDaUrl, urlDoFiltro } from '../../api/products';
+import { NavPrincipal } from '../../components/nav-principal';
 import { Cabecalho } from '../../components/header';
 import { Botao } from '../../components/ui';
 import { useProducts } from '../../hooks/use-products';
@@ -33,7 +34,7 @@ export function TelaDeProdutos({ cliente }: PropsDaTela) {
 
   return (
     <>
-      <Cabecalho links={<Link to="/produtos">Produtos</Link>} />
+      <Cabecalho links={<NavPrincipal />} />
 
       <main className="vitrine">
         <h1 className="vitrine__titulo">Produtos</h1>

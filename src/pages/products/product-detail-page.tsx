@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from 'motion/react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { ApiClient } from '../../api/client';
+import { NavPrincipal } from '../../components/nav-principal';
 import { Cabecalho } from '../../components/header';
 import { Botao } from '../../components/ui';
 import { useProduct } from '../../hooks/use-product';
@@ -34,7 +35,7 @@ export function TelaDeDetalheDoProduto({ cliente }: PropsDaTela) {
 
   return (
     <>
-      <Cabecalho links={<Link to="/produtos">Produtos</Link>} />
+      <Cabecalho links={<NavPrincipal />} />
 
       <main className="detalhe-produto">
         <button

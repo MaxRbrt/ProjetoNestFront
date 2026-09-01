@@ -10,16 +10,17 @@ neste mesmo diretório pai.
 
 ## Estado atual
 
-Fundação, autenticação e vitrine prontas. Última atualização: 2026-08-31.
+Fundação, autenticação, vitrine e painel administrativo prontos. Última atualização: 2026-09-01.
 
 | Área | Estado |
 |---|---|
 | Cliente HTTP | Token em memória, fila de refresh, tratamento de erro da API |
-| Sessão | Três estados (verificando/autenticado/anônimo), recuperação por cookie, rota protegida |
-| Telas | Login, cadastro, verificação de email, inicial autenticada, vitrine e detalhe de produto |
-| Sistema visual | Tokens de cor, tipografia e motion; primitivos de botão, campo e aviso |
+| Sessão | Três estados (verificando/autenticado/anônimo), recuperação por cookie, rota protegida e rota restrita a ADMIN |
+| Telas | Login, cadastro, verificação de email, inicial autenticada, vitrine, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias |
+| Sistema visual | Tokens de cor, tipografia e motion; primitivos de botão, campo e aviso; subnavegação administrativa |
 | Vitrine | Completa — busca/categoria/página na URL, debounce, cancelamento, retry, estados de carregamento/vazio/erro e detalhe com retorno ao filtro |
-| Testes | 72 (Vitest + Testing Library) |
+| Painel Admin | Completo — métricas em paralelo, paginação de produtos/categorias, CRUD com confirmação de remoção, exibição de conflito (409) e cancelamento de requisições por `AbortController` |
+| Testes | 107 (Vitest + Testing Library em 26 suítes) |
 | Carrinho, pedidos | Não iniciados |
 
 ## O contrato de autenticação define a arquitetura
@@ -68,27 +69,52 @@ Todas apareceram rodando a aplicação de verdade, com os testes já passando.
    única volta com `setTimeout(0)`. Em 2026-08-31 falhou uma vez dentro da suíte paralela e passou
    isolado (3/3) e na repetição completa (72/72). Não foi alterado por estar fora do escopo da
    vitrine; se voltar a oscilar, trocar a espera fixa por polling da condição.
+9. **Cancelamento HTTP em hooks exige `AbortController` além da flag de cancelamento.** A flag
+   `cancelado` previne `setState` após desmontagem, mas sem `AbortController` a requisição em voo
+   continua consumindo rede e processamento; o padrão do projeto acopla `controlador.signal` nas
+   chamadas do `ApiClient` e chama `controlador.abort()` no cleanup.
+10. **Asserções em testes com subnavegação não devem usar queries ambíguas.** `NavPrincipal` e
+    `AdminLayout` compartilham links de mesmo texto (como "Produtos"); asserções devem ser escopadas com
+    `within(subnav)` para evitar falso positivo/falha por múltiplos elementos.
+11. **Exclusão de entidades com vínculos gera 409 e deve exibir a mensagem literal da API.**
+    Ao tentar remover produto ou categoria associados a pedidos ou produtos existentes, o backend
+    responde 409 com motivo descritivo; a interface captura `ApiError` e exibe a mensagem na tela.
+12. **`AdminProductFormPage` tinha o mesmo bug de StrictMode do item 3, sozinho.** O efeito de
+    carregar o produto em modo edição abortava a requisição na desmontagem mas não tinha a flag
+    `cancelado` — sob StrictMode, o `catch` da primeira montagem (abortada) rodava mesmo assim e
+    fixava "Não foi possível carregar o produto." por cima do formulário preenchido com sucesso pela
+    segunda montagem. `AdminCategoryFormPage` já tinha o padrão correto; corrigido por espelhamento
+    em 2026-09-01. Achado por revisão manual (Codex indisponível na sessão — rate limit e depois
+    créditos esgotados nas duas tentativas). A reprodução em teste só funcionou depois de trocar o
+    mock de `fetch` por um que realmente rejeita ao `abort()`, como o `fetch` nativo faz — um mock
+    que ignora o `AbortSignal` dá falso verde nesse tipo de bug.
 
 ## Sistema visual e motion
 
-Direção atual: brutalismo refinado — grade visível, cores sólidas, sombra **sólida** (deslocamento
-sem desfoque), cantos retos, tipografia pesada.
+**Correção registrada em 2026-08-31:** este arquivo afirmava "brutalismo refinado" (cantos retos,
+sombra sólida, motion seco) enquanto `src/styles/tokens.css` e `src/motion/tokens.ts` já tinham
+sido reescritos para outra direção. A contradição só foi percebida ao preparar mockups para o bloco
+de navegação por papel — o registro estava mentindo sobre o próprio código. Confirmado com o
+proprietário: a direção abaixo é a que vale, retroativa à construção da vitrine.
 
-**A regra que mantém a coerência:** no brutalismo o movimento *encaixa*, não flutua. Duração curta
-(120–180ms em feedback), curva com parada seca, deslocamento nos eixos da grade. Animação suave e
-demorada aqui parece um tema aplicado por cima.
+Direção atual: linguagem de e-commerce convencional — superfícies claras, cantos arredondados
+(6/10/16px, pílula em elementos de estado), sombra suave que cresce com a elevação, acento laranja
+quente (`--cor-acento`). `src/styles/tokens.css` é a fonte de verdade — não descrever a estética
+aqui sem reler os tokens primeiro; foi exatamente esse desvio que causou a correção acima.
+
+**A regra que mantém a coerência:** a curva desacelera até parar, acompanhando as superfícies
+arredondadas — nenhum movimento trava seco. Duração 120–260ms conforme o peso da transição.
 
 Os tokens ficam em `src/motion/tokens.ts` e `src/styles/tokens.css`, e **espelham um ao outro** de
 propósito: componentes animados pelo Motion e elementos animados por CSS precisam ter o mesmo tempo,
 senão a interface parece ter duas personalidades. Nenhuma tela deve inventar duração ou curva
 própria.
 
-`prefers-reduced-motion` é obrigatório, não opcional: movimento seco e rápido é justamente o que
-incomoda quem tem sensibilidade vestibular. No modo reduzido tudo vira transição de opacidade.
+`prefers-reduced-motion` é obrigatório, não opcional. No modo reduzido tudo vira transição de
+opacidade.
 
 **Movimento só entra quando carrega informação** — entrada escalonada comunica chegada de conteúdo;
-deslocamento no erro dá feedback antes da leitura; transição de elemento compartilhado preserva
-continuidade espacial. Enfeite sem função não entra.
+transição de elemento compartilhado preserva continuidade espacial. Enfeite sem função não entra.
 
 ## Convenções
 

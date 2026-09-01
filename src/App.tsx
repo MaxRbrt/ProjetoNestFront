@@ -1,8 +1,15 @@
 import { MotionConfig } from 'motion/react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { apiClient } from './api/instance';
+import { RotaAdmin } from './auth/admin-route';
 import { RotaProtegida } from './auth/protected-route';
 import { ProvedorDeSessao } from './auth/session-context';
+import { AdminCategoryFormPage } from './pages/admin/admin-category-form-page';
+import { AdminCategoriesPage } from './pages/admin/admin-categories-page';
+import { AdminDashboardPage } from './pages/admin/admin-dashboard-page';
+import { AdminLayout } from './pages/admin/admin-layout';
+import { AdminProductFormPage } from './pages/admin/admin-product-form-page';
+import { AdminProductsPage } from './pages/admin/admin-products-page';
 import { TelaInicial } from './pages/home-page';
 import { TelaDeEntrada } from './pages/login-page';
 import { TelaDeDetalheDoProduto } from './pages/products/product-detail-page';
@@ -58,6 +65,42 @@ export default function App() {
                 </RotaProtegida>
               }
             />
+            <Route
+              element={
+                <RotaAdmin>
+                  <AdminLayout />
+                </RotaAdmin>
+              }
+            >
+              <Route
+                path="/admin"
+                element={<AdminDashboardPage cliente={apiClient} />}
+              />
+              <Route
+                path="/admin/produtos"
+                element={<AdminProductsPage cliente={apiClient} />}
+              />
+              <Route
+                path="/admin/produtos/novo"
+                element={<AdminProductFormPage cliente={apiClient} />}
+              />
+              <Route
+                path="/admin/produtos/:id/editar"
+                element={<AdminProductFormPage cliente={apiClient} />}
+              />
+              <Route
+                path="/admin/categorias"
+                element={<AdminCategoriesPage cliente={apiClient} />}
+              />
+              <Route
+                path="/admin/categorias/novo"
+                element={<AdminCategoryFormPage cliente={apiClient} />}
+              />
+              <Route
+                path="/admin/categorias/:id/editar"
+                element={<AdminCategoryFormPage cliente={apiClient} />}
+              />
+            </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </ProvedorDeSessao>

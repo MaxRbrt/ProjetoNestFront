@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
-import { Link } from 'react-router-dom';
 import { useSessao } from '../auth/session-context';
+import { NavPrincipal } from '../components/nav-principal';
 import { Cabecalho } from '../components/header';
 import { listaContainer, listaItem } from '../motion/tokens';
 import './home.css';
@@ -15,7 +15,7 @@ export function TelaInicial() {
 
   return (
     <>
-      <Cabecalho links={<Link to="/produtos">Produtos</Link>} />
+      <Cabecalho links={<NavPrincipal />} />
 
       <motion.main
         className="inicio"
