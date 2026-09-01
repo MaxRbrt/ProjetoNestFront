@@ -7,8 +7,10 @@ import './home.css';
 
 // ---------------------------------------------
 // Tela inicial autenticada
-// Marca o fim da fundação: confirma que a sessão foi recuperada e que o papel
-// do usuário chegou do backend. O catálogo entra no próximo bloco.
+// Nasceu como confirmação de que a sessão e o papel do usuário chegavam
+// certos do backend, antes de catálogo e painel admin existirem. Os dois já
+// estão prontos; esta tela virar uma home de verdade fica para o bloco de
+// carrinho e pedidos.
 // ---------------------------------------------
 export function TelaInicial() {
   const { usuario } = useSessao();
@@ -49,7 +51,8 @@ export function TelaInicial() {
         </motion.div>
 
         <motion.p className="inicio__nota" variants={listaItem}>
-          Catálogo, busca e pedidos entram no próximo bloco.
+          Catálogo e busca já estão disponíveis em Produtos. Pedidos entram
+          no próximo bloco.
         </motion.p>
       </motion.main>
     </>
