@@ -36,4 +36,3 @@ coverage
 .playwright-cli/
 *.png
 .env
-.CLAUDE.MD
