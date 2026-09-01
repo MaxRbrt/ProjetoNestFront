@@ -1,0 +1,146 @@
+/* ---------------------------------------------
+   Botão
+   A elevação aumenta no apontamento e some no clique: o botão parece subir
+   ao alcance do cursor e afundar quando acionado. É o mesmo vocabulário das
+   superfícies arredondadas — nada trava seco.
+   --------------------------------------------- */
+.botao {
+  font-family: var(--fonte-texto);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.2;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espaco-2);
+
+  padding: var(--espaco-3) var(--espaco-6);
+  border: none;
+  border-radius: var(--raio);
+  background: var(--cor-acento);
+  color: var(--cor-acento-tinta);
+  box-shadow: var(--sombra-baixa);
+
+  cursor: pointer;
+  transition:
+    background-color var(--duracao-instantanea) var(--curva-saida),
+    box-shadow var(--duracao-feedback) var(--curva-saida),
+    transform var(--duracao-feedback) var(--curva-saida);
+}
+
+.botao:hover:not(:disabled) {
+  background: var(--cor-acento-escuro);
+  box-shadow: var(--sombra-media);
+  transform: translateY(-1px);
+}
+
+.botao:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--sombra-baixa);
+}
+
+.botao:focus-visible {
+  outline: 2px solid var(--cor-acento);
+  outline-offset: 2px;
+}
+
+.botao:disabled {
+  cursor: not-allowed;
+  background: var(--cor-borda-forte);
+  color: var(--cor-tinta-suave);
+  box-shadow: none;
+}
+
+.botao--secundario {
+  background: var(--cor-superficie);
+  color: var(--cor-tinta);
+  border: 1px solid var(--cor-borda-forte);
+}
+
+.botao--secundario:hover:not(:disabled) {
+  background: var(--cor-superficie-sutil);
+}
+
+.botao--bloco {
+  width: 100%;
+}
+
+/* ---------------------------------------------
+   Campo de texto
+   O foco engrossa a borda com o acento e adiciona um halo suave: quem tem
+   pouca percepção de cor continua identificando o campo ativo pela espessura.
+   --------------------------------------------- */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+}
+
+.campo__rotulo {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cor-tinta);
+}
+
+.campo__entrada {
+  font-family: var(--fonte-texto);
+  font-size: 0.95rem;
+  padding: var(--espaco-3) var(--espaco-4);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie);
+  color: var(--cor-tinta);
+  transition:
+    border-color var(--duracao-instantanea) var(--curva-saida),
+    box-shadow var(--duracao-instantanea) var(--curva-saida);
+}
+
+.campo__entrada::placeholder {
+  color: var(--cor-tinta-suave);
+}
+
+.campo__entrada:focus {
+  outline: none;
+  border-color: var(--cor-acento);
+  box-shadow: 0 0 0 3px rgb(234 88 12 / 0.15);
+}
+
+.campo__entrada[aria-invalid='true'] {
+  border-color: var(--cor-erro);
+}
+
+.campo__entrada[aria-invalid='true']:focus {
+  box-shadow: 0 0 0 3px rgb(220 38 38 / 0.15);
+}
+
+.campo__erro {
+  font-size: 0.85rem;
+  color: var(--cor-erro);
+}
+
+.campo__ajuda {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--cor-tinta-suave);
+}
+
+/* ---------------------------------------------
+   Aviso
+   Fundo tingido com barra lateral na cor do estado: a informação chega pela
+   posição e pelo texto, não só pela cor de fundo.
+   --------------------------------------------- */
+.aviso {
+  font-size: 0.9rem;
+  padding: var(--espaco-3) var(--espaco-4);
+  border-radius: var(--raio-pequeno);
+  border-left: 3px solid var(--cor-erro);
+  background: var(--cor-erro-suave);
+  color: var(--cor-erro);
+}
+
+.aviso--sucesso {
+  border-left-color: var(--cor-sucesso);
+  background: var(--cor-sucesso-suave);
+  color: var(--cor-sucesso);
+}

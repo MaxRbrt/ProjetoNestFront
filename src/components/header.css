@@ -1,0 +1,82 @@
+/* ---------------------------------------------
+   Cabeçalho da aplicação autenticada
+   Barra escura no topo: a identidade e o acesso à conta permanecem
+   consistentes em todas as telas autenticadas.
+   --------------------------------------------- */
+.cabecalho {
+  background: var(--cor-marca);
+  color: #ffffff;
+  padding: var(--espaco-4) var(--espaco-6);
+}
+
+.cabecalho__conteudo {
+  max-width: 72rem;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-4);
+}
+
+.cabecalho__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.cabecalho__logo-marca {
+  background: var(--cor-acento);
+  padding: var(--espaco-1) var(--espaco-3);
+  border-radius: var(--raio-pequeno);
+}
+
+.cabecalho__links {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-4);
+  flex: 1;
+}
+
+.cabecalho__links a {
+  color: rgb(255 255 255 / 0.85);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cabecalho__links a:hover {
+  color: #ffffff;
+}
+
+.cabecalho a:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 3px;
+}
+
+.cabecalho__conta {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-4);
+}
+
+.cabecalho__usuario {
+  font-size: 0.9rem;
+  color: rgb(255 255 255 / 0.8);
+}
+
+@media (max-width: 48rem) {
+  .cabecalho__usuario {
+    display: none;
+  }
+}
+
+@media (max-width: 22rem) {
+  .cabecalho__logo-texto {
+    display: none;
+  }
+}

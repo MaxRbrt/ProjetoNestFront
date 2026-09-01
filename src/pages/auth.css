@@ -1,0 +1,215 @@
+/* ---------------------------------------------
+   Moldura das telas de autenticação
+   Faixa de marca à esquerda e formulário à direita. Em tela estreita a marca
+   vira um cabeçalho curto: ocupar meia tela num celular empurraria o
+   formulário para fora da primeira dobra.
+   --------------------------------------------- */
+.autenticacao {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  background: var(--cor-fundo);
+}
+
+.autenticacao__marca {
+  background: linear-gradient(
+    160deg,
+    var(--cor-marca) 0%,
+    var(--cor-marca-clara) 100%
+  );
+  color: #ffffff;
+  padding: var(--espaco-12);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--espaco-6);
+}
+
+.autenticacao__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.autenticacao__logo-marca {
+  background: var(--cor-acento);
+  color: #ffffff;
+  padding: var(--espaco-1) var(--espaco-3);
+  border-radius: var(--raio-pequeno);
+}
+
+.autenticacao__titulo {
+  font-size: clamp(1.9rem, 3.4vw, 3rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin: 0;
+  max-width: 18ch;
+}
+
+.autenticacao__lista {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+}
+
+.autenticacao__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espaco-3);
+  font-size: 0.95rem;
+  color: rgb(255 255 255 / 0.85);
+}
+
+.autenticacao__marcador {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--raio-pilula);
+  background: rgb(234 88 12 / 0.2);
+  color: var(--cor-acento);
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.autenticacao__painel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--espaco-8);
+}
+
+.formulario {
+  width: min(24rem, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-5);
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-grande);
+  box-shadow: var(--sombra-media);
+  padding: var(--espaco-8);
+}
+
+.formulario__cabecalho {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+}
+
+.formulario__titulo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.formulario__subtitulo {
+  font-size: 0.9rem;
+  color: var(--cor-tinta-suave);
+  margin: 0;
+}
+
+.formulario__campos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-4);
+}
+
+.formulario__rodape {
+  font-size: 0.9rem;
+  color: var(--cor-tinta-suave);
+  text-align: center;
+  margin: 0;
+}
+
+.formulario__link {
+  color: var(--cor-acento);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.formulario__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+  .autenticacao {
+    grid-template-columns: 1fr;
+  }
+
+  .autenticacao__marca {
+    padding: var(--espaco-6);
+    gap: var(--espaco-4);
+  }
+
+  .autenticacao__lista {
+    display: none;
+  }
+
+  .autenticacao__titulo {
+    font-size: 1.5rem;
+  }
+}
+
+/* ---------------------------------------------
+   Espera da verificação de sessão
+   Três pontos que pulsam em sequência: comunica progresso sem prometer uma
+   barra que não existe, já que a duração da resposta é desconhecida.
+   --------------------------------------------- */
+.verificacao {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espaco-4);
+  background: var(--cor-fundo);
+}
+
+.verificacao__pontos {
+  display: flex;
+  gap: var(--espaco-2);
+}
+
+.verificacao__ponto {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: var(--raio-pilula);
+  background: var(--cor-acento);
+  animation: pulsar-ponto 1.2s ease-in-out infinite;
+}
+
+.verificacao__ponto:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.verificacao__ponto:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.verificacao__texto {
+  font-size: 0.9rem;
+  color: var(--cor-tinta-suave);
+}
+
+@keyframes pulsar-ponto {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

@@ -1,0 +1,97 @@
+/* ---------------------------------------------
+   Tokens visuais
+   Linguagem de e-commerce: superfícies claras, cantos arredondados, sombra
+   suave e um acento quente que carrega preço, ação e destaque. A paleta é
+   própria — a referência foi a estrutura e a densidade das lojas brasileiras,
+   não a identidade de nenhuma delas.
+   --------------------------------------------- */
+:root {
+  --cor-fundo: #f1f5f9;
+  --cor-superficie: #ffffff;
+  --cor-superficie-sutil: #f8fafc;
+
+  --cor-tinta: #0f172a;
+  --cor-tinta-media: #475569;
+  --cor-tinta-suave: #64748b;
+
+  --cor-borda: #e2e8f0;
+  --cor-borda-forte: #cbd5e1;
+
+  --cor-acento: #ea580c;
+  --cor-acento-escuro: #c2410c;
+  --cor-acento-suave: #fff7ed;
+  --cor-acento-tinta: #ffffff;
+
+  --cor-marca: #10233f;
+  --cor-marca-clara: #1e3a5f;
+
+  --cor-sucesso: #16a34a;
+  --cor-sucesso-suave: #f0fdf4;
+  --cor-erro: #dc2626;
+  --cor-erro-suave: #fef2f2;
+  --cor-aviso: #ca8a04;
+
+  /* ---------------------------------------------
+     Forma e profundidade
+     A sombra cresce junto com a elevação: repouso quase imperceptível,
+     destaque no hover. Sem ela, cartão claro sobre fundo claro perde a borda.
+     --------------------------------------------- */
+  --raio-pequeno: 6px;
+  --raio: 10px;
+  --raio-grande: 16px;
+  --raio-pilula: 999px;
+
+  --sombra-baixa: 0 1px 2px rgb(15 23 42 / 0.06);
+  --sombra-media: 0 4px 12px rgb(15 23 42 / 0.08);
+  --sombra-alta: 0 12px 24px rgb(15 23 42 / 0.12);
+
+  --espaco-1: 0.25rem;
+  --espaco-2: 0.5rem;
+  --espaco-3: 0.75rem;
+  --espaco-4: 1rem;
+  --espaco-5: 1.25rem;
+  --espaco-6: 1.5rem;
+  --espaco-8: 2rem;
+  --espaco-12: 3rem;
+
+  --fonte-texto:
+    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --fonte-titulo: var(--fonte-texto);
+  --fonte-dado: 'JetBrains Mono', 'Consolas', monospace;
+
+  /* ---------------------------------------------
+     Tokens de movimento
+     Superfície arredondada com sombra suave pede movimento fluido: a curva
+     desacelera até parar, em vez de travar seco. O tempo continua curto —
+     interface de compra precisa responder rápido, não fazer o usuário esperar
+     a animação terminar para clicar de novo.
+     --------------------------------------------- */
+  --duracao-instantanea: 120ms;
+  --duracao-feedback: 180ms;
+  --duracao-transicao: 260ms;
+
+  --curva-saida: cubic-bezier(0.22, 1, 0.36, 1);
+  --curva-entrada: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---------------------------------------------
+   Respeito à preferência de movimento reduzido
+   Quem pediu menos movimento continua recebendo a mudança de estado, só sem
+   deslocamento: a informação não pode depender da animação.
+   --------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duracao-instantanea: 1ms;
+    --duracao-feedback: 1ms;
+    --duracao-transicao: 1ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

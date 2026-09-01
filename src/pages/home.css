@@ -1,0 +1,75 @@
+/* ---------------------------------------------
+   Corpo da tela inicial
+   --------------------------------------------- */
+.inicio {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: var(--espaco-8) var(--espaco-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-6);
+}
+
+.inicio__titulo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.inicio__cartoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--espaco-4);
+}
+
+.cartao {
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra-baixa);
+  padding: var(--espaco-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+}
+
+.cartao__rotulo {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cor-tinta-suave);
+}
+
+.cartao__valor {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--cor-tinta);
+  word-break: break-word;
+}
+
+.selo {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: var(--espaco-1) var(--espaco-3);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-acento-suave);
+  color: var(--cor-acento-escuro);
+}
+
+.selo--sucesso {
+  background: var(--cor-sucesso-suave);
+  color: var(--cor-sucesso);
+}
+
+.inicio__nota {
+  font-size: 0.9rem;
+  color: var(--cor-tinta-suave);
+  background: var(--cor-superficie);
+  border: 1px dashed var(--cor-borda-forte);
+  border-radius: var(--raio);
+  padding: var(--espaco-4);
+  margin: 0;
+}

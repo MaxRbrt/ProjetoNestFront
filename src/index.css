@@ -1,0 +1,33 @@
+@import './styles/tokens.css';
+
+/* ---------------------------------------------
+   Base do documento
+   Reset enxuto: só o que evita divergência entre navegadores. box-sizing em
+   border-box para que borda de 2px não estoure larguras da grade.
+   --------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+body {
+  font-family: var(--fonte-texto);
+  background: var(--cor-fundo);
+  color: var(--cor-tinta);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}

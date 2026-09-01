@@ -1,0 +1,53 @@
+/* ---------------------------------------------
+   Vitrine de produtos
+   A grade ocupa a largura disponível sem deixar os cartões estreitos demais.
+   O carregamento usa blocos sólidos, sem shimmer ou movimento decorativo.
+   --------------------------------------------- */
+.vitrine {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: var(--espaco-8) var(--espaco-6);
+}
+
+.vitrine__titulo {
+  margin: 0 0 var(--espaco-6);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.vitrine__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--espaco-5);
+}
+
+.vitrine__esqueleto {
+  min-height: 14rem;
+  background: var(--cor-borda);
+  border-radius: var(--raio);
+}
+
+.vitrine__estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--espaco-4);
+  padding: var(--espaco-8) 0;
+}
+
+.vitrine__vazio {
+  color: var(--cor-tinta-suave);
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.vitrine__erro {
+  width: 100%;
+  padding: var(--espaco-3) var(--espaco-4);
+  color: var(--cor-erro);
+  background: var(--cor-erro-suave);
+  border-left: 3px solid var(--cor-erro);
+  border-radius: var(--raio-pequeno);
+  font-size: 0.9rem;
+}
