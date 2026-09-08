@@ -1,33 +1,33 @@
 import { MotionConfig } from 'motion/react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { apiClient } from './api/instance';
-import { RotaAdmin } from './auth/admin-route';
-import { RotaProtegida } from './auth/protected-route';
-import { ProvedorDeSessao } from './auth/session-context';
-import { AdminCategoryFormPage } from './pages/admin/admin-category-form-page';
-import { AdminCategoriesPage } from './pages/admin/admin-categories-page';
-import { AdminDashboardPage } from './pages/admin/admin-dashboard-page';
-import { AdminLayout } from './pages/admin/admin-layout';
-import { AdminProductFormPage } from './pages/admin/admin-product-form-page';
-import { AdminProductsPage } from './pages/admin/admin-products-page';
-import { TelaInicial } from './pages/home-page';
-import { TelaDeEntrada } from './pages/login-page';
-import { TelaDeDetalheDoProduto } from './pages/products/product-detail-page';
-import { TelaDeProdutos } from './pages/products/products-page';
-import { TelaDeCadastro } from './pages/register-page';
-import { TelaDeVerificacaoDeEmail } from './pages/verify-email-page';
+import { apiClient } from './api/instancia';
+import { RotaAdmin } from './auth/rota-admin';
+import { RotaProtegida } from './auth/rota-protegida';
+import { ProvedorDeSessao } from './auth/contexto-de-sessao';
+import { TelaDeFormularioDeCategoriaAdmin } from './pages/admin/tela-de-formulario-de-categoria-admin';
+import { TelaDeCategoriasAdmin } from './pages/admin/tela-de-categorias-admin';
+import { TelaDeDashboardAdmin } from './pages/admin/tela-de-dashboard-admin';
+import { LayoutAdmin } from './pages/admin/layout-admin';
+import { TelaDeFormularioDeProdutoAdmin } from './pages/admin/tela-de-formulario-de-produto-admin';
+import { TelaDeProdutosAdmin } from './pages/admin/tela-de-produtos-admin';
+import { TelaInicial } from './pages/tela-inicial';
+import { TelaDeEntrada } from './pages/tela-de-entrada';
+import { TelaDeDetalheDoProduto } from './pages/products/tela-de-detalhe-do-produto';
+import { TelaDeProdutos } from './pages/products/tela-de-produtos';
+import { TelaDeCadastro } from './pages/tela-de-cadastro';
+import { TelaDeVerificacaoDeEmail } from './pages/tela-de-verificacao-de-email';
 
 // ---------------------------------------------
 // Raiz da aplicação
 // O provedor de sessão envolve o roteador inteiro: as rotas precisam saber se
 // a verificação ainda está em curso antes de decidir o que renderizar, senão
 // quem recarrega a página autenticado vê a tela de entrada piscar.
+// O reducedMotion="user" do MotionConfig é obrigatório: o CSS já respeita a
+// preferência do sistema, mas as animações do Motion rodam por JavaScript e
+// ignoravam esse ajuste — quem pediu menos movimento continuava recebendo tudo.
 // ---------------------------------------------
 export default function App() {
   return (
-    // O reducedMotion="user" é obrigatório: o CSS já respeita a preferência
-    // do sistema, mas as animações do Motion rodam por JavaScript e ignoravam
-    // esse ajuste — quem pediu menos movimento continuava recebendo tudo.
     <MotionConfig reducedMotion="user">
       <BrowserRouter>
         <ProvedorDeSessao cliente={apiClient}>
@@ -68,37 +68,37 @@ export default function App() {
             <Route
               element={
                 <RotaAdmin>
-                  <AdminLayout />
+                  <LayoutAdmin />
                 </RotaAdmin>
               }
             >
               <Route
                 path="/admin"
-                element={<AdminDashboardPage cliente={apiClient} />}
+                element={<TelaDeDashboardAdmin cliente={apiClient} />}
               />
               <Route
                 path="/admin/produtos"
-                element={<AdminProductsPage cliente={apiClient} />}
+                element={<TelaDeProdutosAdmin cliente={apiClient} />}
               />
               <Route
                 path="/admin/produtos/novo"
-                element={<AdminProductFormPage cliente={apiClient} />}
+                element={<TelaDeFormularioDeProdutoAdmin cliente={apiClient} />}
               />
               <Route
                 path="/admin/produtos/:id/editar"
-                element={<AdminProductFormPage cliente={apiClient} />}
+                element={<TelaDeFormularioDeProdutoAdmin cliente={apiClient} />}
               />
               <Route
                 path="/admin/categorias"
-                element={<AdminCategoriesPage cliente={apiClient} />}
+                element={<TelaDeCategoriasAdmin cliente={apiClient} />}
               />
               <Route
                 path="/admin/categorias/novo"
-                element={<AdminCategoryFormPage cliente={apiClient} />}
+                element={<TelaDeFormularioDeCategoriaAdmin cliente={apiClient} />}
               />
               <Route
                 path="/admin/categorias/:id/editar"
-                element={<AdminCategoryFormPage cliente={apiClient} />}
+                element={<TelaDeFormularioDeCategoriaAdmin cliente={apiClient} />}
               />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

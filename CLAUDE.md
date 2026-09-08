@@ -10,7 +10,7 @@ neste mesmo diretório pai.
 
 ## Estado atual
 
-Fundação, autenticação, vitrine e painel administrativo prontos. Última atualização: 2026-09-01.
+Fundação, autenticação, vitrine e painel administrativo prontos. Última atualização: 2026-09-08.
 
 | Área | Estado |
 |---|---|
@@ -20,7 +20,7 @@ Fundação, autenticação, vitrine e painel administrativo prontos. Última atu
 | Sistema visual | Tokens de cor, tipografia e motion; primitivos de botão, campo e aviso; subnavegação administrativa |
 | Vitrine | Completa — busca/categoria/página na URL, debounce, cancelamento, retry, estados de carregamento/vazio/erro e detalhe com retorno ao filtro |
 | Painel Admin | Completo — métricas em paralelo, paginação de produtos/categorias, CRUD com confirmação de remoção, exibição de conflito (409) e cancelamento de requisições por `AbortController` |
-| Testes | 107 (Vitest + Testing Library em 26 suítes) |
+| Testes | **Nenhum.** Todos removidos na auditoria de 2026-09-04, junto com a infraestrutura (`src/test/`, bloco `test` do `vite.config.ts`, scripts `test`/`test:watch`) — ver nota abaixo |
 | Carrinho, pedidos | Não iniciados |
 
 ## O contrato de autenticação define a arquitetura
@@ -88,6 +88,43 @@ Todas apareceram rodando a aplicação de verdade, com os testes já passando.
     créditos esgotados nas duas tentativas). A reprodução em teste só funcionou depois de trocar o
     mock de `fetch` por um que realmente rejeita ao `abort()`, como o `fetch` nativo faz — um mock
     que ignora o `AbortSignal` dá falso verde nesse tipo de bug.
+13. **A marca de saída pendente precisa de `localStorage`, não `sessionStorage`.** Corrigido em
+    2026-09-04 na auditoria do bloco 12. O propósito da marca é impedir que o próximo carregamento
+    recupere pelo cookie uma sessão que o usuário pediu para encerrar, quando o `/auth/logout` falha
+    e o cookie `httpOnly` continua válido no servidor. Com `sessionStorage` a proteção valia só para
+    a aba que fez o logout: uma aba nova no mesmo navegador não via a marca e recuperava a sessão do
+    usuário anterior — exatamente o cenário de computador compartilhado que a marca existe para
+    cobrir. É um booleano sem valor de segredo, então `localStorage` não piora exposição a XSS.
+14. **O contrato HTTP virou PT-BR em 2026-09-04, junto com a refatoração do backend.** Toda
+    propriedade de resposta e de corpo de requisição mudou: `price`→`preco`, `stock`→`estoque`,
+    `categoryId`→`categoriaId`, `name`→`nome` (produto/categoria), `page`→`pagina`,
+    `limit`→`limite`, `data`→`dados`, `role`→`papel`, `isEmailVerified`→`emailVerificado`,
+    `createdAt`→`criadoEm`, `accessToken`→`tokenDeAcesso`, `tokenType`→`tipoDoToken`,
+    `expiresIn`→`expiraEm`, `user`→`usuario` (dentro do corpo de `SessaoAutenticada`), corpo de
+    login/cadastro `password`→`senha`. `src/api/client.ts`, `products.ts` e `catalog-admin.ts`
+    foram atualizados junto — ver o `CLAUDE.md` do backend (seção "Refatoração PT-BR") para o
+    detalhamento completo e os bugs reais que a verificação end-to-end encontrou (nenhum deles do
+    lado do frontend, mas o motivo de a Fase 6 ter sido indispensável).
+15. **Nomes de arquivo, componente e hook traduzidos para PT-BR em 2026-09-08**, num segundo passo
+    depois do contrato (item 14). Toda página e componente já tinha nome PT-BR por dentro desde a
+    construção original — só os 6 componentes admin (`AdminProductsPage` etc.) e os 6 hooks de
+    listagem/métricas (`useProducts`, `useAdminMetrics` etc.) ainda estavam em inglês, junto com boa
+    parte dos nomes de arquivo. O prefixo `use` dos hooks foi preservado (convenção do React/regra
+    do ESLint, não escolha de estilo); `ApiClient`, `App.tsx`, `main.tsx` também ficaram — termo
+    técnico genérico e convenção de entrypoint do Vite, respectivamente.
+
+    **Achado real do Codex nesta revisão** (`codex exec review --uncommitted`), não desta rename —
+    resquício esquecido da Fase 5 do backend: `use-lista-de-categorias-admin.ts` e
+    `use-metricas-admin.ts` ainda enviavam `?page=`/`?limit=` na query string, que o backend
+    rejeita desde a tradução do contrato (`forbidNonWhitelisted`) — painel de categorias e dashboard
+    de métricas quebrados em produção sem nenhum erro de compilação acusar. `tsc -b` não pega
+    porque é literal de string, não checagem de tipo. Corrigido para `?pagina=`/`?limite=` e
+    confirmado por `curl` contra o backend real (200 nos dois).
+
+    **Outra lição da mesma leva:** `tsc -b` não valida se `import './x.css'` aponta pra um arquivo
+    que existe — há uma declaração ambiente `*.css` que aceita qualquer caminho. Só `vite build`
+    (resolução real do bundler) pega isso; apareceu um import de CSS renomeado por engano durante a
+    própria rename (`tela-de-dashboard-admin.tsx` ainda importando `admin-dashboard-page.css`).
 
 ## Sistema visual e motion
 
@@ -123,6 +160,36 @@ em **inglês**. Comentário de bloco com título e explicação **dentro** da ca
 comentário solto no meio do corpo de função** — a explicação vai uma vez só no bloco do topo.
 
 TDD onde há lógica de verdade. Não há teste de aparência: animação e layout se verificam olhando.
+
+## Remoção de testes durante a auditoria de 2026-09
+
+Decisão do proprietário: reduzir o volume do código-fonte, mesmo motivo já registrado no backend.
+Removidos por bloco conforme a auditoria pasta a pasta avançou. **Recuperáveis do histórico do
+git** — os 107 testes existiam e passavam no commit anterior à auditoria.
+
+Ao fim (blocos 13-16) saíram os últimos arquivos e também a infraestrutura, que ficaria configurando
+uma suíte inexistente: `src/test/setup.ts`, o bloco `test` do `vite.config.ts` (que voltou a importar
+`defineConfig` de `vite`, não de `vitest/config`) e os scripts `test`/`test:watch` do `package.json`.
+As devDependencies de teste (`vitest`, `@testing-library/*`, `jsdom`) **foram mantidas**, mesmo
+critério do backend: restaurar a suíte do git não deve exigir reinstalar pacote.
+
+Consequência a considerar: não há mais rede de proteção automática. As armadilhas 1, 3, 6, 9, 12 e 13
+desta lista foram todas encontradas por teste ou por reprodução em teste — mexer em sessão,
+cancelamento ou StrictMode agora depende de verificação manual.
+
+- **`src/auth/logout.test.tsx`** (3 testes) removido em 2026-09-04, junto com o bloco 12. Antes de
+  remover, ele expôs um detalhe útil: o `beforeEach` limpava só `sessionStorage`, então o teste da
+  saída pendente passava por vazamento de estado do teste anterior, não por testar o cenário. Isolado
+  (`-t`), falhava de verdade — foi assim que confirmei a correção do `localStorage` descrita no item
+  13 acima.
+- **`src/api/*.test.ts`** (5 arquivos, 41 testes) removidos em 2026-09-04, junto com o bloco 11 da
+  auditoria. Cobriam: fila de renovação e promessa única (`client.test.ts`), a corrida entre logout
+  concorrente e renovação em voo (`session-races.test.ts`, incluindo o cenário do item 1 acima), o
+  flake conhecido de `BroadcastChannel` (`multi-aba.test.ts`, item 8), e os wrappers de
+  `products.ts`/`catalog-admin.ts`. A lógica de concorrência do `ApiClient` (contador de geração,
+  `renovacaoBloqueada`, lock entre abas) foi revisada manualmente na auditoria e permanece correta,
+  mas perdeu a rede de regressão automática — mexer em `client.ts` de novo exige atenção redobrada
+  sem os testes para pegar um retrocesso silencioso.
 
 ## Regras duras da sessão
 
