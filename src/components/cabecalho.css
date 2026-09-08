@@ -80,3 +80,32 @@
     display: none;
   }
 }
+
+.cabecalho__carrinho {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: rgb(255 255 255 / 0.85);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cabecalho__carrinho:hover {
+  color: #ffffff;
+}
+
+.cabecalho__carrinho-contador {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 var(--espaco-1);
+  margin-left: var(--espaco-2);
+  border-radius: var(--raio-pilula);
+  background: var(--cor-acento);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}

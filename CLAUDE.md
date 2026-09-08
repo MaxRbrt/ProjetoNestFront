@@ -10,18 +10,19 @@ neste mesmo diretório pai.
 
 ## Estado atual
 
-Fundação, autenticação, vitrine e painel administrativo prontos. Última atualização: 2026-09-08.
+Fundação, autenticação, vitrine, painel administrativo e fluxo de compra do cliente prontos. Última
+atualização: 2026-09-08.
 
 | Área | Estado |
 |---|---|
 | Cliente HTTP | Token em memória, fila de refresh, tratamento de erro da API |
 | Sessão | Três estados (verificando/autenticado/anônimo), recuperação por cookie, rota protegida e rota restrita a ADMIN |
-| Telas | Login, cadastro, verificação de email, inicial autenticada, vitrine, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias |
+| Telas | Login, cadastro, verificação de email, inicial autenticada, vitrine, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias, carrinho, meus pedidos, detalhe de pedido |
 | Sistema visual | Tokens de cor, tipografia e motion; primitivos de botão, campo e aviso; subnavegação administrativa |
 | Vitrine | Completa — busca/categoria/página na URL, debounce, cancelamento, retry, estados de carregamento/vazio/erro e detalhe com retorno ao filtro |
 | Painel Admin | Completo — métricas em paralelo, paginação de produtos/categorias, CRUD com confirmação de remoção, exibição de conflito (409) e cancelamento de requisições por `AbortController` |
+| Carrinho, pedidos | Completo — carrinho persistido em `localStorage` limpo no logout, adicionar com teto de estoque, checkout com `Idempotency-Key` estável entre retries, "meus pedidos" paginado, detalhe com cancelamento (`PENDENTE`→`CANCELADO`) — ver seção própria abaixo |
 | Testes | **Nenhum.** Todos removidos na auditoria de 2026-09-04, junto com a infraestrutura (`src/test/`, bloco `test` do `vite.config.ts`, scripts `test`/`test:watch`) — ver nota abaixo |
-| Carrinho, pedidos | Não iniciados |
 
 ## O contrato de autenticação define a arquitetura
 
@@ -125,6 +126,81 @@ Todas apareceram rodando a aplicação de verdade, com os testes já passando.
     que existe — há uma declaração ambiente `*.css` que aceita qualquer caminho. Só `vite build`
     (resolução real do bundler) pega isso; apareceu um import de CSS renomeado por engano durante a
     própria rename (`tela-de-dashboard-admin.tsx` ainda importando `admin-dashboard-page.css`).
+
+## Fluxo de compra do cliente — 2026-09-08
+
+Spec: `../projeto-test/docs/superpowers/specs/2026-09-08-fluxo-de-compra-design.md`. Plano executado
+via Subagent-Driven Development (8 tasks), ledger completo em
+`.superpowers/sdd/2026-09-08-fluxo-de-compra/progress.md`.
+
+Arquivos novos: `src/api/pedidos.ts`, `src/auth/contexto-do-carrinho.tsx`,
+`src/hooks/use-meus-pedidos.ts`, `src/pages/carrinho/tela-de-carrinho.tsx` + `.css`,
+`src/pages/pedidos/tela-de-meus-pedidos.tsx` + `.css`,
+`src/pages/pedidos/tela-de-detalhe-do-pedido.tsx` + `.css`. Modificados:
+`src/pages/products/tela-de-detalhe-do-produto.tsx`, `src/components/cabecalho.tsx` (+`.css`),
+`src/components/nav-principal.tsx`, `src/App.tsx`.
+
+**Backend não tem conceito de carrinho.** `POST /orders` recebe a lista de itens inteira numa única
+chamada; o carrinho (`ContextoDoCarrinho`, mesmo padrão do `ContextoDeSessao`) é construção só do
+frontend, guarda apenas `{ produtoId, quantidade }[]` em `localStorage` — nome e preço são buscados de
+novo na tela do carrinho para nunca exibir dado desatualizado. Limpo quando `useSessao().situacao`
+transiciona para `'anonimo'`.
+
+**Achados reais do Codex nesta revisão** (`codex exec` apontando os 13 arquivos diretamente — não
+`--uncommitted`, que só olha `git diff` e não cobre arquivo novo/untracked; ver nota de processo
+abaixo). 8 achados, 6 corrigidos nesta mesma leva:
+
+- **Retry manual duplicava pedido.** `finalizarPedido` gerava `Idempotency-Key` nova a cada chamada;
+  um retry do usuário após resposta perdida na rede enviava chave diferente e o backend não conseguia
+  deduplicar. Corrigido: chave gerada uma vez por conteúdo de carrinho (`useRef`, invalidada só
+  quando `itens` muda de fato).
+- **Um produto removido do catálogo quebrava o carrinho inteiro.** `Promise.all` rejeitava tudo se uma
+  busca de produto desse 404; o comentário da função já prometia o contrário. Corrigido para
+  `Promise.allSettled`, mantendo só as linhas resolvidas.
+- **Erro de ação escondia dado já carregado.** Um único estado `erro` cobria falha de carga (buscar
+  carrinho/pedido) e falha de ação (finalizar/cancelar); erro na ação apagava a tela inteira, sem
+  meio de corrigir e tentar de novo. Corrigido com `erroDeCarga`/`erroDeAcao` separados em
+  `tela-de-carrinho.tsx` e `tela-de-detalhe-do-pedido.tsx`.
+- **Adicionar ao carrinho repetidamente ultrapassava o estoque.** `adicionar` soma sem teto; clicar
+  duas vezes com quantidade 5 num produto de estoque 5 resultava em carrinho com 10. Corrigido no
+  ponto de chamada (`tela-de-detalhe-do-produto.tsx`): teto calculado a partir da quantidade já no
+  carrinho. Reverificado ao vivo com Playwright.
+- **Paginação de "meus pedidos" piscava dado desatualizado como se fosse atual.** Trocar de página
+  mostrava "Carregando…" e a tabela da página anterior ao mesmo tempo, linhas ainda clicáveis.
+  Corrigido: tabela fica visível e esmaecida (`aria-busy`) durante a troca, em vez de alternar.
+- **Não havia link de navegação para `/pedidos`.** Só era alcançável vindo do redirecionamento
+  pós-checkout. Corrigido: link "Meus pedidos" em `NavPrincipal`.
+
+**Achado 1, corrigido após decisão do proprietário** (envolvia limite de identidade/segurança —
+perguntado explicitamente antes de mexer): nenhum efeito de carrinho ou pedidos dependia de
+`usuario.id`; só a transição para `'anonimo'` limpava o carrinho. Se o usuário B entrasse numa aba
+enquanto A estava com pedidos abertos em outra aba do mesmo navegador (via `BroadcastChannel` de
+sincronização de sessão, indo direto de autenticado A para autenticado B sem passar por `'anonimo'`),
+a aba de A podia continuar mostrando dado de A sob a identidade de B. Corrigido em `App.tsx`:
+extraída `AreaProtegida`, que lê `useSessao()` e passa `key={usuario?.id ?? 'anonimo'}` para
+`ProvedorDoCarrinho` — troca de identidade força o React a desmontar e remontar toda a árvore
+protegida (carrinho e qualquer tela de pedido em exibição), em vez de deixar componentes existentes
+continuarem com dado da identidade anterior.
+
+**Achado 6 fica como dívida conhecida, não como bug corrigido** — carrinho em múltiplas abas usa
+"último a gravar vence": cada aba só lê `localStorage` ao montar; sem `storage` listener, duas abas
+editando o carrinho ao mesmo tempo perdem a alteração de uma delas. Não perguntado nem corrigido
+nesta rodada — mexeria em sincronização entre abas, escopo que a spec aprovada não previu para o
+carrinho (só para sessão).
+
+**Bug real encontrado no backend durante o clique real (não neste repositório, mas descoberto por
+este fluxo):** `PATCH /orders/:id/status` sempre devolvia `itens: undefined` — nenhuma tela anterior a
+esta consumia esse campo do retorno de cancelamento, então ficou invisível até a tela de detalhe do
+pedido tentar `pedido.itens.map` depois de cancelar. Corrigido no `projeto-test` — ver seu `CLAUDE.md`,
+seção do fluxo de compra.
+
+**Nota de processo:** `codex exec review --uncommitted` (usado nos blocos anteriores) só enxerga
+`git diff` da árvore rastreada — arquivo novo nunca commitado nem `git add`-ado (untracked) não entra
+no diff e passa batido. Como esta sessão nunca roda `git add`/`git commit` (regra dura), toda task que
+cria arquivo novo fica invisível para esse comando. Usar em vez disso `codex exec` com um prompt que
+lista os arquivos a revisar explicitamente e instrui a lê-los do disco, não do diff. Também: o timeout
+padrão de 280s não bastou nas duas primeiras tentativas desta revisão (13 arquivos, contexto do
+backend incluído) — só terminou com 580s, mesmo padrão já visto no backend em 2026-09-08.
 
 ## Sistema visual e motion
 
