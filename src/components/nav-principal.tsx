@@ -13,6 +13,7 @@ export function NavPrincipal() {
   return (
     <>
       <Link to="/produtos">Produtos</Link>
+      {usuario ? <Link to="/pedidos">Meus pedidos</Link> : null}
       {usuario?.papel === 'ADMIN' ? (
         <Link to="/admin">Painel Admin</Link>
       ) : null}

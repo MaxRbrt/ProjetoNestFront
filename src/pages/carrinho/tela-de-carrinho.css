@@ -1,0 +1,36 @@
+.tela-carrinho {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: var(--espaco-6);
+}
+
+.tela-carrinho__vazio {
+  color: var(--cor-tinta-media);
+}
+
+.tela-carrinho__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--cor-superficie);
+  border-radius: var(--raio);
+  overflow: hidden;
+  box-shadow: var(--sombra-baixa);
+  margin-bottom: var(--espaco-6);
+}
+
+.tela-carrinho__tabela th,
+.tela-carrinho__tabela td {
+  text-align: left;
+  padding: var(--espaco-3) var(--espaco-4);
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.tela-carrinho__tabela input[type='number'] {
+  width: 4rem;
+}
+
+.tela-carrinho__total {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: var(--espaco-4);
+}
