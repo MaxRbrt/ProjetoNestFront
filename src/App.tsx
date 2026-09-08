@@ -11,6 +11,7 @@ import { TelaDeDashboardAdmin } from './pages/admin/tela-de-dashboard-admin';
 import { LayoutAdmin } from './pages/admin/layout-admin';
 import { TelaDeFormularioDeProdutoAdmin } from './pages/admin/tela-de-formulario-de-produto-admin';
 import { TelaDeProdutosAdmin } from './pages/admin/tela-de-produtos-admin';
+import { TelaDePedidosAdmin } from './pages/admin/tela-de-pedidos-admin';
 import { TelaInicial } from './pages/tela-inicial';
 import { TelaDeEntrada } from './pages/tela-de-entrada';
 import { TelaDeDetalheDoProduto } from './pages/products/tela-de-detalhe-do-produto';
@@ -130,6 +131,16 @@ function AreaProtegida() {
           <Route
             path="/admin"
             element={<TelaDeDashboardAdmin cliente={apiClient} />}
+          />
+          <Route
+            path="/admin/pedidos"
+            element={<TelaDePedidosAdmin cliente={apiClient} />}
+          />
+          <Route
+            path="/admin/pedidos/:id"
+            element={
+              <TelaDeDetalheDoPedido cliente={apiClient} contexto="admin" />
+            }
           />
           <Route
             path="/admin/produtos"

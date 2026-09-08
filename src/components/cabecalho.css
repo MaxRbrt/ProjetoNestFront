@@ -69,6 +69,18 @@
   color: rgb(255 255 255 / 0.8);
 }
 
+@media (max-width: 64rem) {
+  .cabecalho__conteudo {
+    flex-wrap: wrap;
+  }
+
+  .cabecalho__links {
+    order: 3;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+  }
+}
+
 @media (max-width: 48rem) {
   .cabecalho__usuario {
     display: none;

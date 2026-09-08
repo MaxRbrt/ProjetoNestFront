@@ -20,7 +20,7 @@ atualização: 2026-09-08.
 | Telas | Login, cadastro, verificação de email, inicial autenticada, vitrine, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias, carrinho, meus pedidos, detalhe de pedido |
 | Sistema visual | Tokens de cor, tipografia e motion; primitivos de botão, campo e aviso; subnavegação administrativa |
 | Vitrine | Completa — busca/categoria/página na URL, debounce, cancelamento, retry, estados de carregamento/vazio/erro e detalhe com retorno ao filtro |
-| Painel Admin | Completo — métricas em paralelo, paginação de produtos/categorias, CRUD com confirmação de remoção, exibição de conflito (409) e cancelamento de requisições por `AbortController` |
+| Painel Admin | Completo — métricas, CRUD de catálogo e gestão de pedidos com filtro por situação, paginação na URL, detalhe, confirmação manual de pagamento e cancelamento |
 | Carrinho, pedidos | Completo — carrinho persistido em `localStorage` limpo no logout, adicionar com teto de estoque, checkout com `Idempotency-Key` estável entre retries, "meus pedidos" paginado, detalhe com cancelamento (`PENDENTE`→`CANCELADO`) — ver seção própria abaixo |
 | Testes | **Nenhum.** Todos removidos na auditoria de 2026-09-04, junto com a infraestrutura (`src/test/`, bloco `test` do `vite.config.ts`, scripts `test`/`test:watch`) — ver nota abaixo |
 
@@ -282,3 +282,42 @@ são entregues ao proprietário, em lotes de ~3 arquivos.
 | `npm run build` | Build de produção |
 
 Variável de ambiente: `VITE_API_URL` (padrão `http://localhost:3000`).
+
+## Gestão administrativa de pedidos — 2026-09-08
+
+Rotas `/admin/pedidos` e `/admin/pedidos/:id`, ambas dentro de `RotaAdmin`. O menu do painel ganhou
+Pedidos. Filtro Todas/Pendente/Pago/Cancelado e página ficam na URL; mudar filtro volta à primeira
+página, voltar do detalhe preserva a consulta, e valores inválidos são normalizados antes do GET.
+Página vazia além do resultado disponível oferece retorno à primeira página.
+
+O detalhe existente agora recebe `contexto="admin"` na rota administrativa. ADMIN marca pendente
+como pago e cancela pendente/pago; cliente mantém apenas cancelamento de pendente. Cancelado é
+terminal. As confirmações deixam claro: marcar pago é registro manual, sem cobrança; cancelamento
+devolve estoque, mas não executa reembolso financeiro. O servidor continua autorizando as operações.
+
+Cada pedido tem uma instância de conteúdo identificada por contexto/id, e cada consulta de lista
+tem uma instância identificada por página/situação. Leituras têm AbortController e descarte após
+cleanup. Escritas têm trava síncrona e descarte após desmontagem. Se a resposta do PATCH falhar,
+os itens continuam visíveis e novas ações ficam bloqueadas até uma leitura bem-sucedida por
+"Atualizar pedido"; não há repetição automática do PATCH. Isso cobre conflito 409 e resposta perdida
+depois de o servidor aplicar uma transição.
+
+Reutilizados o cliente HTTP, a paginação e o detalhe; nenhum endpoint, migration ou dependência
+novo. A paginação aceita rótulo acessível opcional. O cabeçalho compartilhado agora quebra linhas
+em telas estreitas: validação em 375 px encontrou transbordamento de 522 px, corrigido para 375 px.
+Tabelas mantêm rolagem horizontal dentro de uma região acessível, sem alargar a página.
+
+Validação: **19 testes locais passaram**, build com checagem de tipos passou (485 módulos), lint
+sem erros e sem avisos nos arquivos TS/TSX tocados. O lint global ainda emite 11 avisos em arquivos
+não alterados. Navegador com API simulada validou filtro, paginação, confirmação, transições,
+recuperação de resposta perdida sem repetir PATCH, bloqueio das rotas para CLIENTE/anônimo e layout
+móvel/desktop. Nenhum pedido real foi alterado; integração contra banco real não foi executada.
+
+Os testes desta entrega ficam fora de `src`, em
+`.superpowers/sdd/2026-09-08-gestao-admin-pedidos/gestao-de-pedidos.test.tsx`, usando dependências já
+instaladas e sem restaurar scripts/configuração de testes. Execução:
+`npx.cmd --no-install vitest run .superpowers/sdd/2026-09-08-gestao-admin-pedidos/gestao-de-pedidos.test.tsx --environment jsdom`.
+Esse diretório é local/ignorado, portanto esta verificação não acompanha um clone.
+
+Spec em `../projeto-test/docs/superpowers/specs/2026-09-08-gestao-admin-pedidos-design.md` e relatório
+final/comandos de commit em `.superpowers/sdd/2026-09-08-gestao-admin-pedidos/progress.md`.

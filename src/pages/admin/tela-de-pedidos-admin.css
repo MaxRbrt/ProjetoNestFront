@@ -1,0 +1,61 @@
+.admin-pedidos__cabecalho {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--espaco-4);
+  margin-bottom: var(--espaco-6);
+}
+
+.admin-pedidos__cabecalho p,
+.admin-pedidos__contagem {
+  color: var(--cor-tinta-media);
+}
+
+.admin-pedidos__filtro {
+  display: grid;
+  gap: var(--espaco-2);
+  font-weight: 600;
+}
+
+.admin-pedidos__filtro select {
+  min-width: 10rem;
+  padding: var(--espaco-3);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie);
+  color: var(--cor-tinta);
+  font: inherit;
+}
+
+.admin-pedidos__rolagem {
+  overflow-x: auto;
+}
+
+.admin-pedidos .admin-tabela {
+  min-width: 32rem;
+}
+
+.admin-pedidos__situacao {
+  display: inline-block;
+  padding: var(--espaco-1) var(--espaco-3);
+  border-radius: var(--raio-pilula);
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--cor-superficie-sutil);
+}
+
+.admin-pedidos__situacao--pendente {
+  background: var(--cor-acento-suave);
+  color: var(--cor-acento-escuro);
+}
+
+.admin-pedidos__situacao--pago {
+  background: var(--cor-sucesso-suave);
+  color: var(--cor-marca);
+}
+
+.admin-pedidos__situacao--cancelado {
+  background: var(--cor-erro-suave);
+  color: var(--cor-erro);
+}

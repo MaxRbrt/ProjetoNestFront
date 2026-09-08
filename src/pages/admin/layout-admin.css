@@ -12,6 +12,7 @@
 
 .painel-admin__subnav {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--espaco-6);
   padding: var(--espaco-4) 0;
   border-bottom: 1px solid var(--cor-borda);

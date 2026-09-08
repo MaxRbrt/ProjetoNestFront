@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import type { ApiClient } from '../../api/cliente';
 import { ApiError } from '../../api/cliente';
-import { buscarPedido, cancelarPedido } from '../../api/pedidos';
-import type { Pedido } from '../../api/pedidos';
+import { atualizarSituacaoDoPedido, buscarPedido } from '../../api/pedidos';
+import type { Pedido, SituacaoDoPedido } from '../../api/pedidos';
 import { Cabecalho } from '../../components/cabecalho';
 import { NavPrincipal } from '../../components/nav-principal';
 import { Aviso, Botao } from '../../components/primitivos';
@@ -11,6 +11,7 @@ import './tela-de-detalhe-do-pedido.css';
 
 interface PropsDaTela {
   cliente: ApiClient;
+  contexto?: 'cliente' | 'admin';
 }
 
 const FORMATADOR_DE_PRECO = new Intl.NumberFormat('pt-BR', {
@@ -30,34 +31,90 @@ const ROTULO_DA_SITUACAO: Record<string, string> = {
 };
 
 // ---------------------------------------------
-// Detalhe de um pedido
-// Os itens mostram o snapshot congelado no momento da compra
-// (nomeDoProduto/precoUnitario), não o produto atual — o pedido antigo
-// precisa continuar mostrando o que foi de fato comprado e pago, mesmo que o
-// produto mude de nome ou preço depois. Cancelar só aparece em PENDENTE,
-// mesma regra que o backend já aplica. Erro de carga (buscar o pedido) e
-// erro de ação (cancelar) ficam em estados separados: uma falha ao cancelar
-// não pode apagar o pedido já carregado da tela.
+// Detalhe compartilhado pelo cliente e painel administrativo
+// A rota administrativa já passa por RotaAdmin; o servidor é a autoridade
+// sobre cada transição. A chave descarta estado ao mudar de pedido ou contexto,
+// inclusive quando uma leitura ou escrita anterior ainda não respondeu.
 // ---------------------------------------------
-export function TelaDeDetalheDoPedido({ cliente }: PropsDaTela) {
+export function TelaDeDetalheDoPedido({
+  cliente,
+  contexto = 'cliente',
+}: PropsDaTela) {
   const parametros = useParams<{ id: string }>();
+  const local = useLocation();
   const id = Number(parametros.id);
+  const retorno =
+    contexto === 'admin' ? `/admin/pedidos${local.search}` : '/pedidos';
+  const Conteiner = contexto === 'admin' ? 'section' : 'main';
+
+  return (
+    <>
+      {contexto === 'cliente' ? <Cabecalho links={<NavPrincipal />} /> : null}
+      <Conteiner
+        className={`detalhe-pedido${contexto === 'admin' ? ' detalhe-pedido--admin' : ''}`}
+      >
+        <Link to={retorno} className="detalhe-pedido__voltar">
+          {contexto === 'admin'
+            ? '← Voltar para pedidos'
+            : '← Voltar para meus pedidos'}
+        </Link>
+        {Number.isInteger(id) && id > 0 && id <= 2147483647 ? (
+          <ConteudoDoPedido
+            key={`${contexto}:${id}`}
+            cliente={cliente}
+            contexto={contexto}
+            id={id}
+          />
+        ) : (
+          <Aviso>Identificador de pedido inválido.</Aviso>
+        )}
+      </Conteiner>
+    </>
+  );
+}
+
+// ---------------------------------------------
+// Leitura e transições de um único pedido
+// Itens preservam nome e preço congelados na compra. Falha de escrita não
+// esconde esses dados nem dispara retry: exige leitura antes da próxima ação,
+// porque o servidor pode ter aplicado a transição mesmo sem resposta de rede.
+// A trava síncrona protege cliques concorrentes; a referência de montagem
+// impede que a resposta de uma escrita atinja outra tela após navegar.
+// ---------------------------------------------
+function ConteudoDoPedido({
+  cliente,
+  contexto,
+  id,
+}: PropsDaTela & { id: number }) {
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erroDeCarga, setErroDeCarga] = useState<string | null>(null);
   const [erroDeAcao, setErroDeAcao] = useState<string | null>(null);
-  const [cancelando, setCancelando] = useState(false);
+  const [acaoEmCurso, setAcaoEmCurso] = useState<SituacaoDoPedido | null>(null);
+  const [precisaAtualizar, setPrecisaAtualizar] = useState(false);
+  const [tentativa, setTentativa] = useState(0);
+  const [sucesso, setSucesso] = useState<string | null>(null);
+  const escrevendo = useRef(false);
+  const montado = useRef(false);
+
+  useEffect(() => {
+    montado.current = true;
+    return () => {
+      montado.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     const controlador = new AbortController();
     let cancelado = false;
-    setCarregando(true);
 
     buscarPedido(cliente, id, controlador.signal)
       .then((resultado) => {
         if (cancelado) return;
         setPedido(resultado);
         setErroDeCarga(null);
+        setErroDeAcao(null);
+        setPrecisaAtualizar(false);
         setCarregando(false);
       })
       .catch((falha: unknown) => {
@@ -77,54 +134,84 @@ export function TelaDeDetalheDoPedido({ cliente }: PropsDaTela) {
       cancelado = true;
       controlador.abort();
     };
-  }, [cliente, id]);
+  }, [cliente, id, tentativa]);
 
-  async function cancelarComConfirmacao() {
-    if (!window.confirm('Cancelar este pedido?')) {
-      return;
-    }
+  async function alterarComConfirmacao(
+    situacao: Exclude<SituacaoDoPedido, 'PENDENTE'>,
+  ) {
+    if (escrevendo.current || carregando || precisaAtualizar || !pedido) return;
+    const mensagem =
+      situacao === 'PAGO'
+        ? `Confirmar que o pagamento do pedido #${id} foi recebido? Esta ação apenas registra o pagamento.`
+        : `Cancelar o pedido #${id}? Os itens serão devolvidos ao estoque. Esta ação não pode ser desfeita.${pedido.situacao === 'PAGO' ? ' O reembolso financeiro deve ser realizado separadamente.' : ''}`;
+    if (!window.confirm(mensagem)) return;
+    escrevendo.current = true;
     setErroDeAcao(null);
-    setCancelando(true);
+    setSucesso(null);
+    setAcaoEmCurso(situacao);
     try {
-      const atualizado = await cancelarPedido(cliente, id);
+      const atualizado = await atualizarSituacaoDoPedido(cliente, id, situacao);
+      if (!montado.current) return;
       setPedido(atualizado);
+      setSucesso(
+        situacao === 'PAGO'
+          ? 'Pagamento registrado.'
+          : 'Pedido cancelado. Estoque devolvido.',
+      );
     } catch (falha) {
+      if (!montado.current) return;
+      setPrecisaAtualizar(true);
       setErroDeAcao(
-        falha instanceof ApiError
+        (falha instanceof ApiError
           ? falha.message
-          : 'Não foi possível cancelar o pedido.',
+          : 'Não foi possível confirmar o resultado da alteração.') +
+          ' Atualize o pedido para conferir a situação antes de tentar outra ação.',
       );
     } finally {
-      setCancelando(false);
+      escrevendo.current = false;
+      if (montado.current) setAcaoEmCurso(null);
     }
   }
 
+  const bloqueado =
+    carregando || !!acaoEmCurso || precisaAtualizar || !!erroDeCarga;
+
   return (
     <>
-      <Cabecalho links={<NavPrincipal />} />
+      {erroDeCarga ? <Aviso>{erroDeCarga}</Aviso> : null}
+      {erroDeAcao ? <Aviso>{erroDeAcao}</Aviso> : null}
+      {sucesso ? <Aviso tipo="sucesso">{sucesso}</Aviso> : null}
+      {erroDeCarga || precisaAtualizar ? (
+        <Botao
+          variante="secundario"
+          carregando={carregando}
+          onClick={() => {
+            setCarregando(true);
+            setErroDeCarga(null);
+            setTentativa((atual) => atual + 1);
+          }}
+        >
+          {pedido ? 'Atualizar pedido' : 'Tentar novamente'}
+        </Botao>
+      ) : null}
 
-      <main className="detalhe-pedido">
-        <Link to="/pedidos" className="detalhe-pedido__voltar">
-          ← Voltar para meus pedidos
-        </Link>
+      {carregando ? <p role="status">Carregando pedido…</p> : null}
 
-        {erroDeCarga ? <Aviso>{erroDeCarga}</Aviso> : null}
+      {pedido ? (
+        <>
+          <h1>Pedido #{pedido.id}</h1>
+          <p className="detalhe-pedido__meta">
+            {FORMATADOR_DE_DATA.format(new Date(pedido.criadoEm))} ·{' '}
+            {ROTULO_DA_SITUACAO[pedido.situacao] ?? pedido.situacao}
+          </p>
 
-        {!erroDeCarga && carregando ? (
-          <p role="status">Carregando pedido…</p>
-        ) : null}
-
-        {!erroDeCarga && pedido ? (
-          <>
-            {erroDeAcao ? <Aviso>{erroDeAcao}</Aviso> : null}
-
-            <h1>Pedido #{pedido.id}</h1>
-            <p className="detalhe-pedido__meta">
-              {FORMATADOR_DE_DATA.format(new Date(pedido.criadoEm))} ·{' '}
-              {ROTULO_DA_SITUACAO[pedido.situacao] ?? pedido.situacao}
-            </p>
-
-            <table className="detalhe-pedido__tabela">
+          <div
+            className="detalhe-pedido__rolagem"
+            role="region"
+            aria-label="Itens do pedido"
+            tabIndex={0}
+          >
+            <table className="detalhe-pedido__tabela" aria-busy={carregando}>
               <thead>
                 <tr>
                   <th>Produto</th>
@@ -148,23 +235,40 @@ export function TelaDeDetalheDoPedido({ cliente }: PropsDaTela) {
                 ))}
               </tbody>
             </table>
+          </div>
 
-            <p className="detalhe-pedido__total">
-              Total: {FORMATADOR_DE_PRECO.format(pedido.total)}
-            </p>
+          <p className="detalhe-pedido__total">
+            Total: {FORMATADOR_DE_PRECO.format(pedido.total)}
+          </p>
 
-            {pedido.situacao === 'PENDENTE' ? (
+          <div className="detalhe-pedido__acoes">
+            {contexto === 'admin' && pedido.situacao === 'PENDENTE' ? (
               <Botao
-                variante="secundario"
-                carregando={cancelando}
-                onClick={() => void cancelarComConfirmacao()}
+                disabled={bloqueado}
+                carregando={acaoEmCurso === 'PAGO'}
+                onClick={() => void alterarComConfirmacao('PAGO')}
               >
-                {cancelando ? 'Cancelando…' : 'Cancelar pedido'}
+                {acaoEmCurso === 'PAGO'
+                  ? 'Registrando pagamento…'
+                  : 'Marcar como pago'}
               </Botao>
             ) : null}
-          </>
-        ) : null}
-      </main>
+            {pedido.situacao === 'PENDENTE' ||
+            (contexto === 'admin' && pedido.situacao === 'PAGO') ? (
+              <Botao
+                variante="secundario"
+                disabled={bloqueado}
+                carregando={acaoEmCurso === 'CANCELADO'}
+                onClick={() => void alterarComConfirmacao('CANCELADO')}
+              >
+                {acaoEmCurso === 'CANCELADO'
+                  ? 'Cancelando…'
+                  : 'Cancelar pedido'}
+              </Botao>
+            ) : null}
+          </div>
+        </>
+      ) : null}
     </>
   );
 }

@@ -24,6 +24,7 @@ export function LayoutAdmin() {
           </NavLink>
           <NavLink to="/admin/produtos">Produtos</NavLink>
           <NavLink to="/admin/categorias">Categorias</NavLink>
+          <NavLink to="/admin/pedidos">Pedidos</NavLink>
         </nav>
         <main className="painel-admin__conteudo">
           <Outlet />
