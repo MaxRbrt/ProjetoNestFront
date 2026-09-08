@@ -17,7 +17,7 @@ atualização: 2026-09-08.
 |---|---|
 | Cliente HTTP | Token em memória, fila de refresh, tratamento de erro da API |
 | Sessão | Três estados (verificando/autenticado/anônimo), recuperação por cookie, rota protegida e rota restrita a ADMIN |
-| Telas | Login, cadastro, verificação de email, inicial autenticada, vitrine, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias, carrinho, meus pedidos, detalhe de pedido |
+| Telas | Login, cadastro, verificação de email, recuperação de senha (esqueci/redefinir), inicial autenticada, vitrine, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias, carrinho, meus pedidos, detalhe de pedido |
 | Sistema visual | Tokens de cor, tipografia e motion; primitivos de botão, campo e aviso; subnavegação administrativa |
 | Vitrine | Completa — busca/categoria/página na URL, debounce, cancelamento, retry, estados de carregamento/vazio/erro e detalhe com retorno ao filtro |
 | Painel Admin | Completo — métricas, CRUD de catálogo e gestão de pedidos com filtro por situação, paginação na URL, detalhe, confirmação manual de pagamento e cancelamento |
@@ -126,6 +126,83 @@ Todas apareceram rodando a aplicação de verdade, com os testes já passando.
     que existe — há uma declaração ambiente `*.css` que aceita qualquer caminho. Só `vite build`
     (resolução real do bundler) pega isso; apareceu um import de CSS renomeado por engano durante a
     própria rename (`tela-de-dashboard-admin.tsx` ainda importando `admin-dashboard-page.css`).
+16. **`StrictMode` pode desmontar e remontar o componente de verdade no mount inicial, não só
+    duplicar efeitos — perder um valor lido de API mutável do navegador (URL, `location.hash`) fica
+    fácil se o primeiro mount já tiver mutado essa fonte.** Achado construindo
+    `TelaDeRedefinirSenha`: a primeira versão lia o token do fragmento da URL num `useRef` e limpava
+    a URL (`history.replaceState`) dentro de um `useEffect` no mount. Sequência real observada (não
+    suposta — confirmada com `console.log` e reprodução isolada em `about:blank` → navegar): render
+    1 lê o token certo → efeito 1 roda e apaga o hash da URL → **StrictMode desmonta o componente de
+    verdade e remonta** → render 2 (fiber nova, hooks resetados) relê a URL, agora vazia → token
+    perdido antes do usuário sequer ver o formulário. `TelaDeVerificacaoDeEmail` tem a mesma forma
+    (lê o hash, limpa a URL num efeito de mount) e pode carregar o mesmo problema — não investigado
+    a fundo por estar fora do escopo desta tarefa, mas é candidato a revisão.
+
+    Fix aplicado: não mutar a fonte da verdade (a URL) antes do primeiro sucesso real de uso — a
+    limpeza cosmética da URL só acontece depois do POST de redefinição ter respondido OK, quando não
+    há mais duplo-mount de StrictMode pela frente. Um segundo bug apareceu ao corrigir o primeiro: o
+    token como `const` simples (recalculado a cada render) lia de novo a URL já limpa no re-render
+    pós-sucesso e voltava a cair no branch de "link incompleto" — resolvido guardando o token uma
+    única vez com `useState(() => ...)` (inicializador preguiçoso), não recalculado em renders
+    seguintes.
+
+## Recuperação de senha — 2026-09-08
+
+Spec: `../projeto-test/docs/superpowers/specs/2026-09-08-recuperacao-de-senha-design.md`. Única
+lacuna que restava nas telas de autenticação — backend já tinha os dois endpoints prontos e
+verificados, frontend não tinha nenhuma tela nem link para o fluxo.
+
+Arquivos novos: `src/pages/tela-de-esqueci-senha.tsx`, `src/pages/tela-de-redefinir-senha.tsx`.
+Modificados: `src/pages/tela-de-entrada.tsx` (link "Esqueceu sua senha?"), `src/App.tsx` (rotas
+`/esqueci-senha` e `/redefinir-senha`, fora de `RotaProtegida`, mesmo nível de `/entrar`).
+
+`TelaDeEsqueciSenha`: campo de email, `POST /auth/forgot-password`, sempre mostra a mesma mensagem
+genérica de sucesso (o backend responde igual exista ou não a conta — não recriar a enumeração no
+cliente). `TelaDeRedefinirSenha`: lê o token de `#token=...` (mesmo padrão de
+`TelaDeVerificacaoDeEmail`), formulário de nova senha, `POST /auth/reset-password`, sucesso mostra
+aviso + link manual para `/entrar` (sem redirect automático — decisão explícita, mesmo critério já
+usado na verificação de email). Só um erro terminal ("pedir novo link") é exibido: quando a mensagem
+da API bate exatamente com o texto que o backend usa para token inexistente/expirado/já consumido
+(`INVALID_ACTION_TOKEN` em `tokens-de-acao.service.ts`, "O token é inválido ou expirou."). Qualquer
+outro erro (senha fora da política, rede) é recuperável — mantém o formulário visível com o campo já
+preenchido, mesmo padrão de `Aviso` inline usado em `TelaDeEntrada`/`TelaDeCadastro`.
+
+**Bug real de StrictMode encontrado e corrigido nesta tarefa** — ver item 16 da lista de
+armadilhas acima (desmontagem real no mount inicial perdendo o token lido da URL).
+
+**Achados reais do Codex nesta revisão** (`codex exec` apontando os 4 arquivos diretamente,
+reproduzidos com React Testing Library + JSDOM antes de reportar, não hipóteses) — 2 achados,
+ambos corrigidos:
+
+- **Todo erro de `POST /auth/reset-password` derrubava o formulário e mandava pedir link novo**,
+  inclusive senha fora da política (400 de validação) e falha de rede — usuário não conseguia
+  corrigir a própria senha e tentar de novo com o mesmo link válido. Corrigido: só o texto exato de
+  token inválido/expirado vira tela terminal; o resto vira `Aviso` inline sem descartar o
+  formulário (ver acima).
+- **Rotas públicas (`/entrar`, `/cadastrar`, `/verificar-email`, `/esqueci-senha`,
+  `/redefinir-senha`) estavam dentro da subárvore `<ProvedorDoCarrinho key={usuario?.id ??
+  'anonimo'}>`.** Reproduzido: se a identidade mudar em outra aba (login/logout sincronizado por
+  `BroadcastChannel`) enquanto esta aba está em `/redefinir-senha` depois de um reset bem-sucedido,
+  a troca de `key` remonta a tela pública inteira — o `useState` que guarda `concluido` é perdido, o
+  inicializador relê a URL (já limpa) e mostra "link incompleto" mesmo com a senha já alterada com
+  sucesso. Bug pré-existente (a mesma estrutura já afetava `/entrar`/`/cadastrar`/`/verificar-email`
+  antes desta tarefa; só ficou visível agora por causa do estado de sucesso em
+  `TelaDeRedefinirSenha`). Corrigido em `App.tsx`: extraída `AreaComCarrinho`, rota de layout que
+  concentra `key={usuario?.id ?? 'anonimo'}` — só as rotas protegidas/admin ficam por baixo dela;
+  as rotas públicas viram irmãs no mesmo `<Routes>`, fora da subárvore com key.
+- Também descartado pelo Codex (investigado, não confirmado): `useSearchParams()` não re-executa em
+  resposta a `history.replaceState` manual (não dispara o listener do Router), então o token
+  guardado em `useState` não é relido por esse caminho; duplo clique não reproduziu inconsistência
+  (`Botao` já desabilita durante o envio).
+
+Validação: `npx tsc -b` e `npm run build` limpos (487 módulos) antes e depois da correção dos
+achados do Codex. Clique real de ponta a ponta contra o backend local (`EMAIL_PROVIDER=file`
+temporário nesta sessão, para capturar o link em `.emails-dev/` em vez de tentar enviar por Resend):
+cadastro → verificação → pedido de recuperação pelo formulário → link real extraído do arquivo de
+email → senha inválida (formulário permanece, corrige e reenvia) → redefinição com sucesso → login
+com a senha nova, sucesso. Reuso do mesmo token (tentativa separada) devolveu o erro terminal
+corretamente. Nenhum teste automatizado (frontend sem infraestrutura de teste ativa nesta fase,
+mesmo critério dos blocos anteriores).
 
 ## Fluxo de compra do cliente — 2026-09-08
 
