@@ -99,6 +99,10 @@ export function TelaDeEntrada() {
         <Botao type="submit" bloco carregando={enviando}>
           {enviando ? 'Entrando…' : 'Entrar'}
         </Botao>
+
+        <Link className="formulario__link" to="/esqueci-senha">
+          Esqueceu sua senha?
+        </Link>
       </motion.form>
 
       <p className="formulario__rodape">
