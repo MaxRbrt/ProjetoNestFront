@@ -1,3 +1,4 @@
+import { centavosParaReais, reaisParaCentavos } from '../../utils/dinheiro';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { ApiClient } from '../../api/cliente';
@@ -47,7 +48,7 @@ export function TelaDeFormularioDeProdutoAdmin({ cliente }: PropsDaTela) {
       .then((produto) => {
         if (cancelado) return;
         setNome(produto.nome);
-        setPreco(String(produto.preco));
+        setPreco(centavosParaReais(produto.precoEmCentavos));
         setCategoriaId(String(produto.categoriaId));
         setEstoque(String(produto.estoque));
       })
@@ -61,14 +62,28 @@ export function TelaDeFormularioDeProdutoAdmin({ cliente }: PropsDaTela) {
     };
   }, [cliente, emEdicao, parametros.id]);
 
+  // ---------------------------------------------
+  // Gravação do produto
+  // O campo de preço é digitado em reais, com vírgula ou ponto, e a API só
+  // aceita centavos inteiros. A conversão falha explicitamente em vez de
+  // enviar NaN: sem esta checagem, "dezenove reais" viraria um preço nulo no
+  // catálogo sem nenhum aviso para quem cadastrou.
+  // ---------------------------------------------
   async function aoSalvar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     setErro(null);
+
+    const precoEmCentavos = reaisParaCentavos(preco);
+    if (precoEmCentavos === null) {
+      setErro('Informe um preço válido, como 19,90.');
+      return;
+    }
+
     setSalvando(true);
 
     const dados: DadosDeProduto = {
       nome,
-      preco: Number(preco),
+      precoEmCentavos,
       categoriaId: Number(categoriaId),
       estoque: Number(estoque),
     };

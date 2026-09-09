@@ -99,6 +99,10 @@ export function TelaDeVerificacaoDeEmail({ cliente }: PropsDaTela) {
       <Aviso>{erro}</Aviso>
       <p className="formulario__rodape">
         O link pode ter expirado ou já ter sido usado.{' '}
+        <Link className="formulario__link" to="/reenviar-verificacao">
+          Pedir um novo link
+        </Link>
+        {' · '}
         <Link className="formulario__link" to="/entrar">
           Voltar para a entrada
         </Link>

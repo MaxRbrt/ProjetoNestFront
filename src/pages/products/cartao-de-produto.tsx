@@ -1,3 +1,4 @@
+import { formatarCentavos } from '../../utils/dinheiro';
 import { motion, useReducedMotion } from 'motion/react';
 import { Link, useLocation } from 'react-router-dom';
 import type { Produto } from '../../api/produtos';
@@ -7,11 +8,6 @@ import './cartao-de-produto.css';
 interface PropsDoCartao {
   produto: Produto;
 }
-
-const FORMATADOR_DE_PRECO = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-});
 
 // ---------------------------------------------
 // Cartão de produto na grade
@@ -42,7 +38,7 @@ export function CartaoDeProduto({ produto }: PropsDoCartao) {
         <div className="cartao-produto__corpo">
           <h3 className="cartao-produto__nome">{produto.nome}</h3>
           <p className="cartao-produto__preco">
-            {FORMATADOR_DE_PRECO.format(produto.preco)}
+            {formatarCentavos(produto.precoEmCentavos)}
           </p>
           <p className="cartao-produto__estoque">
             {produto.estoque > 0 ? `${produto.estoque} em estoque` : 'Esgotado'}

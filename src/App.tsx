@@ -1,5 +1,5 @@
 import { MotionConfig } from 'motion/react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { apiClient } from './api/instancia';
 import { RotaAdmin } from './auth/rota-admin';
 import { RotaProtegida } from './auth/rota-protegida';
@@ -11,6 +11,7 @@ import { TelaDeDashboardAdmin } from './pages/admin/tela-de-dashboard-admin';
 import { LayoutAdmin } from './pages/admin/layout-admin';
 import { TelaDeFormularioDeProdutoAdmin } from './pages/admin/tela-de-formulario-de-produto-admin';
 import { TelaDeProdutosAdmin } from './pages/admin/tela-de-produtos-admin';
+import { TelaDePedidosAdmin } from './pages/admin/tela-de-pedidos-admin';
 import { TelaInicial } from './pages/tela-inicial';
 import { TelaDeEntrada } from './pages/tela-de-entrada';
 import { TelaDeDetalheDoProduto } from './pages/products/tela-de-detalhe-do-produto';
@@ -20,6 +21,9 @@ import { TelaDeMeusPedidos } from './pages/pedidos/tela-de-meus-pedidos';
 import { TelaDeDetalheDoPedido } from './pages/pedidos/tela-de-detalhe-do-pedido';
 import { TelaDeCadastro } from './pages/tela-de-cadastro';
 import { TelaDeVerificacaoDeEmail } from './pages/tela-de-verificacao-de-email';
+import { TelaDeEsqueciSenha } from './pages/tela-de-esqueci-senha';
+import { TelaDeReenviarVerificacao } from './pages/tela-de-reenviar-verificacao';
+import { TelaDeRedefinirSenha } from './pages/tela-de-redefinir-senha';
 
 // ---------------------------------------------
 // Raiz da aplicação
@@ -47,31 +51,51 @@ export default function App() {
 
 // ---------------------------------------------
 // Área que depende da identidade do usuário
-// ProvedorDoCarrinho ganha key={usuario?.id ?? 'anonimo'}: quando a sessão
-// troca de um usuário autenticado para outro na mesma aba (sincronização de
-// sessão entre abas via BroadcastChannel, sem passar por um estado
-// intermediário anônimo), a mudança de key força o React a desmontar e
-// remontar toda a subárvore — carrinho e qualquer tela de pedido em
-// exibição — em vez de deixar componentes existentes continuarem mostrando
-// dado do usuário anterior sob a identidade do novo. Sem isso, a aba A
-// podia continuar exibindo pedidos e carrinho de A depois que a aba B
-// promovia a sessão inteira do navegador para B.
+// AreaComCarrinho é uma rota de layout: só ela fica sob
+// key={usuario?.id ?? 'anonimo'}. Quando a sessão troca de um usuário
+// autenticado para outro na mesma aba (sincronização entre abas via
+// BroadcastChannel, sem passar por um estado intermediário anônimo), a
+// mudança de key força o React a desmontar e remontar essa subárvore —
+// carrinho e qualquer tela de pedido em exibição — em vez de deixar
+// componentes existentes continuarem mostrando dado do usuário anterior sob
+// a identidade do novo. Sem isso, a aba A podia continuar exibindo pedidos e
+// carrinho de A depois que a aba B promovia a sessão inteira do navegador
+// para B.
+//
+// As rotas públicas (entrada, cadastro, verificação de email, recuperação de
+// senha) ficam FORA dessa subárvore de propósito — revisão adversarial
+// (Codex) reproduziu um bug real: se uma tela pública com estado local
+// próprio (como a confirmação de "senha redefinida" em
+// TelaDeRedefinirSenha) estivesse dentro dela, uma troca de identidade em
+// outra aba remontaria a tela pública no meio da leitura, perdendo esse
+// estado e mostrando um erro mesmo com a ação já concluída com sucesso.
 // ---------------------------------------------
 function AreaProtegida() {
-  const { usuario } = useSessao();
-
   return (
-    <ProvedorDoCarrinho key={usuario?.id ?? 'anonimo'}>
-      <Routes>
-        <Route path="/entrar" element={<TelaDeEntrada />} />
-        <Route
-          path="/cadastrar"
-          element={<TelaDeCadastro cliente={apiClient} />}
-        />
-        <Route
-          path="/verificar-email"
-          element={<TelaDeVerificacaoDeEmail cliente={apiClient} />}
-        />
+    <Routes>
+      <Route path="/entrar" element={<TelaDeEntrada />} />
+      <Route
+        path="/cadastrar"
+        element={<TelaDeCadastro cliente={apiClient} />}
+      />
+      <Route
+        path="/verificar-email"
+        element={<TelaDeVerificacaoDeEmail cliente={apiClient} />}
+      />
+      <Route
+        path="/reenviar-verificacao"
+        element={<TelaDeReenviarVerificacao cliente={apiClient} />}
+      />
+      <Route
+        path="/esqueci-senha"
+        element={<TelaDeEsqueciSenha cliente={apiClient} />}
+      />
+      <Route
+        path="/redefinir-senha"
+        element={<TelaDeRedefinirSenha cliente={apiClient} />}
+      />
+
+      <Route element={<AreaComCarrinho />}>
         <Route
           path="/"
           element={
@@ -132,6 +156,16 @@ function AreaProtegida() {
             element={<TelaDeDashboardAdmin cliente={apiClient} />}
           />
           <Route
+            path="/admin/pedidos"
+            element={<TelaDePedidosAdmin cliente={apiClient} />}
+          />
+          <Route
+            path="/admin/pedidos/:id"
+            element={
+              <TelaDeDetalheDoPedido cliente={apiClient} contexto="admin" />
+            }
+          />
+          <Route
             path="/admin/produtos"
             element={<TelaDeProdutosAdmin cliente={apiClient} />}
           />
@@ -156,8 +190,24 @@ function AreaProtegida() {
             element={<TelaDeFormularioDeCategoriaAdmin cliente={apiClient} />}
           />
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+// ---------------------------------------------
+// Layout do carrinho por identidade
+// Ver o comentário de AreaProtegida — isolado numa rota de layout própria
+// para que só as rotas protegidas/admin fiquem sob a key de identidade.
+// ---------------------------------------------
+function AreaComCarrinho() {
+  const { usuario } = useSessao();
+
+  return (
+    <ProvedorDoCarrinho key={usuario?.id ?? 'anonimo'}>
+      <Outlet />
     </ProvedorDoCarrinho>
   );
 }

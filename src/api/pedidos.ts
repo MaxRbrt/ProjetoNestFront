@@ -7,14 +7,14 @@ export interface ItemDoPedido {
   pedidoId: number;
   produtoId: number;
   nomeDoProduto: string;
-  precoUnitario: number;
+  precoUnitarioEmCentavos: number;
 }
 
 export type SituacaoDoPedido = 'PENDENTE' | 'PAGO' | 'CANCELADO';
 
 export interface Pedido {
   id: number;
-  total: number;
+  totalEmCentavos: number;
   criadoEm: string;
   itens: ItemDoPedido[];
   situacao: SituacaoDoPedido;
@@ -47,16 +47,19 @@ export function criarPedido(
 }
 
 // ---------------------------------------------
-// Listagem paginada dos próprios pedidos
-// O backend já filtra por dono automaticamente — nenhum parâmetro extra além
-// da página é necessário para o cliente ver só o que é seu.
+// Listagem paginada dos pedidos visíveis à sessão
+// O backend filtra por dono para cliente e permite todos para administrador.
+// Situação é opcional para preservar os consumidores sem filtro.
 // ---------------------------------------------
 export function listarPedidos(
   cliente: ApiClient,
   pagina: number,
   signal: AbortSignal,
+  situacao?: SituacaoDoPedido,
 ): Promise<Paginado<Pedido>> {
-  return cliente.get<Paginado<Pedido>>(`/orders?pagina=${pagina}`, {
+  const consulta = new URLSearchParams({ pagina: String(pagina) });
+  if (situacao) consulta.set('situacao', situacao);
+  return cliente.get<Paginado<Pedido>>(`/orders?${consulta}`, {
     signal,
   });
 }
@@ -77,8 +80,22 @@ export function buscarPedido(
 // Sem AbortSignal de propósito: é uma ação de escrita disparada por clique,
 // não uma busca que a troca de tela deva cancelar.
 // ---------------------------------------------
-export function cancelarPedido(cliente: ApiClient, id: number): Promise<Pedido> {
-  return cliente.patch<Pedido>(`/orders/${id}/status`, {
-    situacao: 'CANCELADO',
-  });
+export function cancelarPedido(
+  cliente: ApiClient,
+  id: number,
+): Promise<Pedido> {
+  return atualizarSituacaoDoPedido(cliente, id, 'CANCELADO');
+}
+
+// ---------------------------------------------
+// Transição de situação
+// O servidor decide permissões e estado de origem sob lock. A interface
+// nunca reenvia automaticamente uma escrita cuja resposta foi perdida.
+// ---------------------------------------------
+export function atualizarSituacaoDoPedido(
+  cliente: ApiClient,
+  id: number,
+  situacao: Exclude<SituacaoDoPedido, 'PENDENTE'>,
+): Promise<Pedido> {
+  return cliente.patch<Pedido>(`/orders/${id}/status`, { situacao });
 }

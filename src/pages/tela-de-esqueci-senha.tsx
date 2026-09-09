@@ -12,17 +12,13 @@ interface PropsDaTela {
 }
 
 // ---------------------------------------------
-// Tela de cadastro
-// O sucesso não leva direto para dentro da aplicação: o backend exige
-// verificação de email antes de permitir login, então a tela precisa explicar
-// que falta um passo, em vez de deixar o usuário tentando entrar e falhando.
-// Os requisitos de senha aparecem no campo antes do envio, não só na mensagem
-// de erro: descobrir a regra por tentativa e erro é o caminho mais curto para
-// o usuário escolher a senha mínima que o formulário aceita.
+// Tela de esqueci minha senha
+// A confirmação é sempre a mesma frase genérica, exista ou não a conta: o
+// backend responde de propósito o aceite genérico para não revelar quais
+// emails têm cadastro, e detalhar aqui recriaria essa enumeração no cliente.
 // ---------------------------------------------
-export function TelaDeCadastro({ cliente }: PropsDaTela) {
+export function TelaDeEsqueciSenha({ cliente }: PropsDaTela) {
   const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [enviado, setEnviado] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -34,13 +30,13 @@ export function TelaDeCadastro({ cliente }: PropsDaTela) {
     setEnviando(true);
 
     try {
-      await cliente.post('/auth/register', { email, senha });
+      await cliente.post('/auth/forgot-password', { email });
       setEnviado(true);
     } catch (falha) {
       const mensagem =
         falha instanceof ApiError
           ? falha.message
-          : 'Não foi possível cadastrar agora. Tente de novo.';
+          : 'Não foi possível enviar agora. Tente de novo.';
       setErro(mensagem);
       sacudirAgora();
     } finally {
@@ -52,20 +48,15 @@ export function TelaDeCadastro({ cliente }: PropsDaTela) {
     return (
       <LayoutDeAutenticacao
         titulo="Confira seu email"
-        subtitulo="Falta um passo para ativar sua conta."
+        subtitulo="Enviamos as instruções, se a conta existir."
       >
         <Aviso tipo="sucesso">
-          Se os dados forem elegíveis, você receberá as instruções por email.
+          Se o email informado tiver uma conta, você vai receber um link para
+          redefinir sua senha.
         </Aviso>
         <p className="formulario__rodape">
-          Já confirmou?{' '}
           <Link className="formulario__link" to="/entrar">
-            Entrar
-          </Link>
-          {' · '}
-          Não recebeu?{' '}
-          <Link className="formulario__link" to="/reenviar-verificacao">
-            Reenviar
+            Voltar para a entrada
           </Link>
         </p>
       </LayoutDeAutenticacao>
@@ -74,8 +65,8 @@ export function TelaDeCadastro({ cliente }: PropsDaTela) {
 
   return (
     <LayoutDeAutenticacao
-      titulo="Criar conta"
-      subtitulo="Leva menos de um minuto."
+      titulo="Esqueceu sua senha?"
+      subtitulo="Informe seu email para receber as instruções de redefinição."
     >
       <motion.form
         className="formulario__campos"
@@ -97,25 +88,13 @@ export function TelaDeCadastro({ cliente }: PropsDaTela) {
           required
         />
 
-        <Campo
-          rotulo="Senha"
-          type="password"
-          name="password"
-          placeholder="Mínimo 8 caracteres"
-          autoComplete="new-password"
-          ajuda="Use ao menos uma letra maiúscula, um número e um símbolo. Frases longas são mais seguras que senhas curtas complicadas."
-          value={senha}
-          onChange={(evento) => setSenha(evento.target.value)}
-          required
-        />
-
         <Botao type="submit" bloco carregando={enviando}>
-          {enviando ? 'Cadastrando…' : 'Cadastrar'}
+          {enviando ? 'Enviando…' : 'Enviar instruções'}
         </Botao>
       </motion.form>
 
       <p className="formulario__rodape">
-        Já tem conta?{' '}
+        Lembrou a senha?{' '}
         <Link className="formulario__link" to="/entrar">
           Entrar
         </Link>

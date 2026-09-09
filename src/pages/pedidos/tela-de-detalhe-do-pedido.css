@@ -4,6 +4,22 @@
   padding: var(--espaco-6);
 }
 
+.detalhe-pedido--admin {
+  max-width: none;
+  padding: 0;
+}
+
+.detalhe-pedido__rolagem {
+  overflow-x: auto;
+  margin-bottom: var(--espaco-4);
+}
+
+.detalhe-pedido__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-3);
+}
+
 .detalhe-pedido__voltar {
   display: inline-block;
   margin-bottom: var(--espaco-4);
@@ -17,6 +33,7 @@
 }
 
 .detalhe-pedido__tabela {
+  min-width: 32rem;
   width: 100%;
   border-collapse: collapse;
   background: var(--cor-superficie);

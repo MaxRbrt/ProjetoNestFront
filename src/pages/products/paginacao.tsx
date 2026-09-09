@@ -5,6 +5,7 @@ interface PropsDaPaginacao {
   pagina: number;
   totalDePaginas: number;
   aoMudar: (pagina: number) => void;
+  rotulo?: string;
 }
 
 // ---------------------------------------------
@@ -15,13 +16,14 @@ export function Paginacao({
   pagina,
   totalDePaginas,
   aoMudar,
+  rotulo = 'Paginação de produtos',
 }: PropsDaPaginacao) {
   if (totalDePaginas <= 1) {
     return null;
   }
 
   return (
-    <nav className="paginacao" aria-label="Paginação de produtos">
+    <nav className="paginacao" aria-label={rotulo}>
       <Botao
         variante="secundario"
         disabled={pagina <= 1}

@@ -1,3 +1,4 @@
+import { formatarCentavos } from '../../utils/dinheiro';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ApiClient } from '../../api/cliente';
@@ -11,11 +12,6 @@ import './tela-de-meus-pedidos.css';
 interface PropsDaTela {
   cliente: ApiClient;
 }
-
-const FORMATADOR_DE_PRECO = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-});
 
 const FORMATADOR_DE_DATA = new Intl.DateTimeFormat('pt-BR', {
   dateStyle: 'short',
@@ -77,7 +73,7 @@ export function TelaDeMeusPedidos({ cliente }: PropsDaTela) {
                     <Link to={`/pedidos/${pedido.id}`}>#{pedido.id}</Link>
                   </td>
                   <td>{FORMATADOR_DE_DATA.format(new Date(pedido.criadoEm))}</td>
-                  <td>{FORMATADOR_DE_PRECO.format(pedido.total)}</td>
+                  <td>{formatarCentavos(pedido.totalEmCentavos)}</td>
                   <td>{ROTULO_DA_SITUACAO[pedido.situacao] ?? pedido.situacao}</td>
                 </tr>
               ))}

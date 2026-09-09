@@ -11,18 +11,19 @@ neste mesmo diretório pai.
 ## Estado atual
 
 Fundação, autenticação, vitrine, painel administrativo e fluxo de compra do cliente prontos. Última
-atualização: 2026-09-08.
+atualização: 2026-09-09.
 
 | Área | Estado |
 |---|---|
 | Cliente HTTP | Token em memória, fila de refresh, tratamento de erro da API |
 | Sessão | Três estados (verificando/autenticado/anônimo), recuperação por cookie, rota protegida e rota restrita a ADMIN |
-| Telas | Login, cadastro, verificação de email, inicial autenticada, vitrine, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias, carrinho, meus pedidos, detalhe de pedido |
+| Telas | Login, cadastro, verificação de email, reenvio de verificação, recuperação de senha (esqueci/redefinir), inicial autenticada, vitrine, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias, carrinho, meus pedidos, detalhe de pedido |
 | Sistema visual | Tokens de cor, tipografia e motion; primitivos de botão, campo e aviso; subnavegação administrativa |
 | Vitrine | Completa — busca/categoria/página na URL, debounce, cancelamento, retry, estados de carregamento/vazio/erro e detalhe com retorno ao filtro |
-| Painel Admin | Completo — métricas em paralelo, paginação de produtos/categorias, CRUD com confirmação de remoção, exibição de conflito (409) e cancelamento de requisições por `AbortController` |
+| Painel Admin | Completo — métricas, CRUD de catálogo e gestão de pedidos com filtro por situação, paginação na URL, detalhe, confirmação manual de pagamento e cancelamento |
 | Carrinho, pedidos | Completo — carrinho persistido em `localStorage` limpo no logout, adicionar com teto de estoque, checkout com `Idempotency-Key` estável entre retries, "meus pedidos" paginado, detalhe com cancelamento (`PENDENTE`→`CANCELADO`) — ver seção própria abaixo |
-| Testes | **Nenhum.** Todos removidos na auditoria de 2026-09-04, junto com a infraestrutura (`src/test/`, bloco `test` do `vite.config.ts`, scripts `test`/`test:watch`) — ver nota abaixo |
+| Dinheiro | **Centavos inteiros.** A API fala em `precoEmCentavos`/`totalEmCentavos`/`precoUnitarioEmCentavos`; conversão para exibição e para envio vive só em `src/utils/dinheiro.ts` |
+| Testes | Restaurados em 2026-09-09 (40 testes, `npm test`) — `ApiClient` (fila de refresh), `ProvedorDoCarrinho`, `dinheiro.ts`, gestão admin de pedidos |
 
 ## O contrato de autenticação define a arquitetura
 
@@ -126,6 +127,113 @@ Todas apareceram rodando a aplicação de verdade, com os testes já passando.
     que existe — há uma declaração ambiente `*.css` que aceita qualquer caminho. Só `vite build`
     (resolução real do bundler) pega isso; apareceu um import de CSS renomeado por engano durante a
     própria rename (`tela-de-dashboard-admin.tsx` ainda importando `admin-dashboard-page.css`).
+16. **`StrictMode` pode desmontar e remontar o componente de verdade no mount inicial, não só
+    duplicar efeitos — perder um valor lido de API mutável do navegador (URL, `location.hash`) fica
+    fácil se o primeiro mount já tiver mutado essa fonte.** Achado construindo
+    `TelaDeRedefinirSenha`: a primeira versão lia o token do fragmento da URL num `useRef` e limpava
+    a URL (`history.replaceState`) dentro de um `useEffect` no mount. Sequência real observada (não
+    suposta — confirmada com `console.log` e reprodução isolada em `about:blank` → navegar): render
+    1 lê o token certo → efeito 1 roda e apaga o hash da URL → **StrictMode desmonta o componente de
+    verdade e remonta** → render 2 (fiber nova, hooks resetados) relê a URL, agora vazia → token
+    perdido antes do usuário sequer ver o formulário. `TelaDeVerificacaoDeEmail` tem a mesma forma
+    (lê o hash, limpa a URL num efeito de mount) e pode carregar o mesmo problema — não investigado
+    a fundo por estar fora do escopo desta tarefa, mas é candidato a revisão.
+
+    Fix aplicado: não mutar a fonte da verdade (a URL) antes do primeiro sucesso real de uso — a
+    limpeza cosmética da URL só acontece depois do POST de redefinição ter respondido OK, quando não
+    há mais duplo-mount de StrictMode pela frente. Um segundo bug apareceu ao corrigir o primeiro: o
+    token como `const` simples (recalculado a cada render) lia de novo a URL já limpa no re-render
+    pós-sucesso e voltava a cair no branch de "link incompleto" — resolvido guardando o token uma
+    única vez com `useState(() => ...)` (inicializador preguiçoso), não recalculado em renders
+    seguintes.
+
+## Recuperação de senha — 2026-09-08
+
+Spec: `../projeto-test/docs/superpowers/specs/2026-09-08-recuperacao-de-senha-design.md`. Única
+lacuna que restava nas telas de autenticação — backend já tinha os dois endpoints prontos e
+verificados, frontend não tinha nenhuma tela nem link para o fluxo.
+
+Arquivos novos: `src/pages/tela-de-esqueci-senha.tsx`, `src/pages/tela-de-redefinir-senha.tsx`.
+Modificados: `src/pages/tela-de-entrada.tsx` (link "Esqueceu sua senha?"), `src/App.tsx` (rotas
+`/esqueci-senha` e `/redefinir-senha`, fora de `RotaProtegida`, mesmo nível de `/entrar`).
+
+`TelaDeEsqueciSenha`: campo de email, `POST /auth/forgot-password`, sempre mostra a mesma mensagem
+genérica de sucesso (o backend responde igual exista ou não a conta — não recriar a enumeração no
+cliente). `TelaDeRedefinirSenha`: lê o token de `#token=...` (mesmo padrão de
+`TelaDeVerificacaoDeEmail`), formulário de nova senha, `POST /auth/reset-password`, sucesso mostra
+aviso + link manual para `/entrar` (sem redirect automático — decisão explícita, mesmo critério já
+usado na verificação de email). Só um erro terminal ("pedir novo link") é exibido: quando a mensagem
+da API bate exatamente com o texto que o backend usa para token inexistente/expirado/já consumido
+(`INVALID_ACTION_TOKEN` em `tokens-de-acao.service.ts`, "O token é inválido ou expirou."). Qualquer
+outro erro (senha fora da política, rede) é recuperável — mantém o formulário visível com o campo já
+preenchido, mesmo padrão de `Aviso` inline usado em `TelaDeEntrada`/`TelaDeCadastro`.
+
+**Bug real de StrictMode encontrado e corrigido nesta tarefa** — ver item 16 da lista de
+armadilhas acima (desmontagem real no mount inicial perdendo o token lido da URL).
+
+**Achados reais do Codex nesta revisão** (`codex exec` apontando os 4 arquivos diretamente,
+reproduzidos com React Testing Library + JSDOM antes de reportar, não hipóteses) — 2 achados,
+ambos corrigidos:
+
+- **Todo erro de `POST /auth/reset-password` derrubava o formulário e mandava pedir link novo**,
+  inclusive senha fora da política (400 de validação) e falha de rede — usuário não conseguia
+  corrigir a própria senha e tentar de novo com o mesmo link válido. Corrigido: só o texto exato de
+  token inválido/expirado vira tela terminal; o resto vira `Aviso` inline sem descartar o
+  formulário (ver acima).
+- **Rotas públicas (`/entrar`, `/cadastrar`, `/verificar-email`, `/esqueci-senha`,
+  `/redefinir-senha`) estavam dentro da subárvore `<ProvedorDoCarrinho key={usuario?.id ??
+  'anonimo'}>`.** Reproduzido: se a identidade mudar em outra aba (login/logout sincronizado por
+  `BroadcastChannel`) enquanto esta aba está em `/redefinir-senha` depois de um reset bem-sucedido,
+  a troca de `key` remonta a tela pública inteira — o `useState` que guarda `concluido` é perdido, o
+  inicializador relê a URL (já limpa) e mostra "link incompleto" mesmo com a senha já alterada com
+  sucesso. Bug pré-existente (a mesma estrutura já afetava `/entrar`/`/cadastrar`/`/verificar-email`
+  antes desta tarefa; só ficou visível agora por causa do estado de sucesso em
+  `TelaDeRedefinirSenha`). Corrigido em `App.tsx`: extraída `AreaComCarrinho`, rota de layout que
+  concentra `key={usuario?.id ?? 'anonimo'}` — só as rotas protegidas/admin ficam por baixo dela;
+  as rotas públicas viram irmãs no mesmo `<Routes>`, fora da subárvore com key.
+- Também descartado pelo Codex (investigado, não confirmado): `useSearchParams()` não re-executa em
+  resposta a `history.replaceState` manual (não dispara o listener do Router), então o token
+  guardado em `useState` não é relido por esse caminho; duplo clique não reproduziu inconsistência
+  (`Botao` já desabilita durante o envio).
+
+Validação: `npx tsc -b` e `npm run build` limpos (487 módulos) antes e depois da correção dos
+achados do Codex. Clique real de ponta a ponta contra o backend local (`EMAIL_PROVIDER=file`
+temporário nesta sessão, para capturar o link em `.emails-dev/` em vez de tentar enviar por Resend):
+cadastro → verificação → pedido de recuperação pelo formulário → link real extraído do arquivo de
+email → senha inválida (formulário permanece, corrige e reenvia) → redefinição com sucesso → login
+com a senha nova, sucesso. Reuso do mesmo token (tentativa separada) devolveu o erro terminal
+corretamente. Nenhum teste automatizado (frontend sem infraestrutura de teste ativa nesta fase,
+mesmo critério dos blocos anteriores).
+
+## Reenvio de verificação de email — 2026-09-09
+
+Spec: `../projeto-test/docs/superpowers/specs/2026-09-09-reenvio-de-verificacao-design.md`. Última
+lacuna nas telas de autenticação: o backend já tinha `POST /auth/resend-verification` desde sempre,
+mas quem clicasse um link de verificação vencido ficava sem saída na própria aplicação.
+
+Arquivo novo: `src/pages/tela-de-reenviar-verificacao.tsx` — cópia estrutural de
+`TelaDeEsqueciSenha` (mesmo endpoint genérico-202, mesma ausência de enumeração de conta).
+Modificados: `src/pages/tela-de-verificacao-de-email.tsx` (link "Pedir um novo link" no estado de
+erro), `src/pages/tela-de-cadastro.tsx` (link "Reenviar" no estado "Confira seu email", cobre o
+caso de o primeiro email nunca ter chegado), `src/App.tsx` (rota `/reenviar-verificacao`, pública,
+fora da subárvore com `key` de identidade — mesmo cuidado já registrado na tarefa anterior).
+
+Revisão Codex: nenhum achado real — só uma nota P3 (mensagem de erro genérico de rede tem texto
+levemente diferente entre `TelaDeReenviarVerificacao` e `TelaDeCadastro`, "enviar" vs "cadastrar";
+o próprio Codex descartou como não-enumeração, natural por serem ações diferentes). Confirmado que
+os dois bugs da tarefa anterior (formulário descartado em qualquer erro, rota pública dentro da
+subárvore com key) não foram reintroduzidos.
+
+Validação: `npm run build` limpo (488 módulos). Clique real contra o backend local
+(`EMAIL_PROVIDER=file`): reenvio para conta já verificada (202, sem novo email — comportamento
+correto do backend), reenvio para conta recém-cadastrada não verificada (202, confirmado por curl),
+link "Pedir um novo link" a partir de token inválido em `/verificar-email` navegando corretamente,
+link "Reenviar" a partir do estado pós-cadastro. Nenhum teste automatizado, mesmo critério dos
+blocos anteriores. Contas de teste (`teste-reenvio@exemplo.local`,
+`teste-cadastro-verificacao-link@exemplo.local`) e a da tarefa anterior
+(`teste-recuperacao@exemplo.local`) removidas do banco de desenvolvimento ao final, via script
+descartável usando o `DataSource` do próprio backend (não SQL cru solto) — pedido do proprietário
+para não acumular dado de teste no banco real.
 
 ## Fluxo de compra do cliente — 2026-09-08
 
@@ -237,7 +345,40 @@ comentário solto no meio do corpo de função** — a explicação vai uma vez 
 
 TDD onde há lógica de verdade. Não há teste de aparência: animação e layout se verificam olhando.
 
-## Remoção de testes durante a auditoria de 2026-09
+## Infraestrutura de teste restaurada + dinheiro em centavos — 2026-09-09
+
+Roadmap: `../projeto-test/docs/superpowers/specs/2026-09-09-roadmap-nucleo-comercial.md`, Fases 0 e
+1. Reverte a decisão da seção seguinte — mantida abaixo como registro histórico, não como estado
+atual.
+
+**Infra:** bloco `test` de volta no `vite.config.ts` (`defineConfig` de `vitest/config`, `jsdom`,
+`src/test/setup.ts`), scripts `test`/`test:watch`. `include: ['src/**/*.{test,spec}.{ts,tsx}']`
+explícito — sem isso o Vitest varre a raiz inteira e pega qualquer teste solto fora de `src/`.
+
+**Achado ao ligar a infra:** os 19 testes de gestão administrativa de pedidos (bloco de 2026-09-08)
+viviam em `.superpowers/sdd/`, diretório local ignorado pelo git — "todos os testes passam"
+significava coisas diferentes em máquinas diferentes. Movidos para
+`src/pages/admin/gestao-de-pedidos.test.tsx`. Ao entrar em `src/`, pegaram um erro de tipo real que
+nunca tinha sido checado (`contexto = 'admin'` inferido como `string` numa prop que só aceita
+`'cliente' | 'admin'`) — só apareceu porque agora passam por `tsc -b`.
+
+**Testes novos:** `src/api/cliente.test.ts` (fila de renovação — armadilha 1) e
+`src/auth/contexto-do-carrinho.test.tsx` (persistência, limpeza no logout, soma sem teto — o teto
+fica no ponto de chamada, não no contexto). Os dois foram verificados quebrando o código de
+propósito: desligar a fila de renovação faz 5 requisições concorrentes disparar 5 renovações em vez
+de 1, e o teste pega.
+
+**Dinheiro:** contrato mudou (`preco`→`precoEmCentavos`, `total`→`totalEmCentavos`,
+`precoUnitario`→`precoUnitarioEmCentavos`), acompanhando a migration do backend. Sete cópias do
+mesmo `Intl.NumberFormat` espalhadas pelas telas viraram um helper único,
+`src/utils/dinheiro.ts` (`formatarCentavos`, `reaisParaCentavos`, `centavosParaReais`). O formulário
+de produto do admin digita reais e converte para centavos no envio, com vírgula ou ponto aceitos —
+teclado brasileiro usa vírgula, e recusar silenciosamente seria pior que aceitar as duas.
+
+Verificação: 40 testes (`npm test`), `npm run build` limpo, clique real conferindo vitrine
+(R$ 99,90), carrinho com quantidade 3 (R$ 299,70) e pedido criado com o mesmo total.
+
+## Remoção de testes durante a auditoria de 2026-09 (histórico — parcialmente revertido acima)
 
 Decisão do proprietário: reduzir o volume do código-fonte, mesmo motivo já registrado no backend.
 Removidos por bloco conforme a auditoria pasta a pasta avançou. **Recuperáveis do histórico do
@@ -282,3 +423,42 @@ são entregues ao proprietário, em lotes de ~3 arquivos.
 | `npm run build` | Build de produção |
 
 Variável de ambiente: `VITE_API_URL` (padrão `http://localhost:3000`).
+
+## Gestão administrativa de pedidos — 2026-09-08
+
+Rotas `/admin/pedidos` e `/admin/pedidos/:id`, ambas dentro de `RotaAdmin`. O menu do painel ganhou
+Pedidos. Filtro Todas/Pendente/Pago/Cancelado e página ficam na URL; mudar filtro volta à primeira
+página, voltar do detalhe preserva a consulta, e valores inválidos são normalizados antes do GET.
+Página vazia além do resultado disponível oferece retorno à primeira página.
+
+O detalhe existente agora recebe `contexto="admin"` na rota administrativa. ADMIN marca pendente
+como pago e cancela pendente/pago; cliente mantém apenas cancelamento de pendente. Cancelado é
+terminal. As confirmações deixam claro: marcar pago é registro manual, sem cobrança; cancelamento
+devolve estoque, mas não executa reembolso financeiro. O servidor continua autorizando as operações.
+
+Cada pedido tem uma instância de conteúdo identificada por contexto/id, e cada consulta de lista
+tem uma instância identificada por página/situação. Leituras têm AbortController e descarte após
+cleanup. Escritas têm trava síncrona e descarte após desmontagem. Se a resposta do PATCH falhar,
+os itens continuam visíveis e novas ações ficam bloqueadas até uma leitura bem-sucedida por
+"Atualizar pedido"; não há repetição automática do PATCH. Isso cobre conflito 409 e resposta perdida
+depois de o servidor aplicar uma transição.
+
+Reutilizados o cliente HTTP, a paginação e o detalhe; nenhum endpoint, migration ou dependência
+novo. A paginação aceita rótulo acessível opcional. O cabeçalho compartilhado agora quebra linhas
+em telas estreitas: validação em 375 px encontrou transbordamento de 522 px, corrigido para 375 px.
+Tabelas mantêm rolagem horizontal dentro de uma região acessível, sem alargar a página.
+
+Validação: **19 testes locais passaram**, build com checagem de tipos passou (485 módulos), lint
+sem erros e sem avisos nos arquivos TS/TSX tocados. O lint global ainda emite 11 avisos em arquivos
+não alterados. Navegador com API simulada validou filtro, paginação, confirmação, transições,
+recuperação de resposta perdida sem repetir PATCH, bloqueio das rotas para CLIENTE/anônimo e layout
+móvel/desktop. Nenhum pedido real foi alterado; integração contra banco real não foi executada.
+
+Os testes desta entrega ficam fora de `src`, em
+`.superpowers/sdd/2026-09-08-gestao-admin-pedidos/gestao-de-pedidos.test.tsx`, usando dependências já
+instaladas e sem restaurar scripts/configuração de testes. Execução:
+`npx.cmd --no-install vitest run .superpowers/sdd/2026-09-08-gestao-admin-pedidos/gestao-de-pedidos.test.tsx --environment jsdom`.
+Esse diretório é local/ignorado, portanto esta verificação não acompanha um clone.
+
+Spec em `../projeto-test/docs/superpowers/specs/2026-09-08-gestao-admin-pedidos-design.md` e relatório
+final/comandos de commit em `.superpowers/sdd/2026-09-08-gestao-admin-pedidos/progress.md`.
