@@ -3,7 +3,7 @@ import type { Categoria, Produto } from './produtos';
 
 export interface DadosDeProduto {
   nome: string;
-  preco: number;
+  precoEmCentavos: number;
   categoriaId: number;
   estoque: number;
 }

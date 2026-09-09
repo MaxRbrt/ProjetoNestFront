@@ -7,14 +7,14 @@ export interface ItemDoPedido {
   pedidoId: number;
   produtoId: number;
   nomeDoProduto: string;
-  precoUnitario: number;
+  precoUnitarioEmCentavos: number;
 }
 
 export type SituacaoDoPedido = 'PENDENTE' | 'PAGO' | 'CANCELADO';
 
 export interface Pedido {
   id: number;
-  total: number;
+  totalEmCentavos: number;
   criadoEm: string;
   itens: ItemDoPedido[];
   situacao: SituacaoDoPedido;

@@ -3,7 +3,7 @@ import type { ApiClient } from './cliente';
 export interface Produto {
   id: number;
   nome: string;
-  preco: number;
+  precoEmCentavos: number;
   estoque: number;
   categoriaId: number;
 }
