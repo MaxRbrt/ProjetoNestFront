@@ -9,6 +9,20 @@
   padding: 0;
 }
 
+.detalhe-pedido__endereco {
+  margin-bottom: var(--espaco-4);
+}
+
+.detalhe-pedido__endereco h2 {
+  font-size: 1rem;
+  margin-bottom: var(--espaco-1);
+}
+
+.detalhe-pedido__endereco p {
+  color: var(--cor-tinta-media);
+  margin: 0;
+}
+
 .detalhe-pedido__rolagem {
   overflow-x: auto;
   margin-bottom: var(--espaco-4);

@@ -14,6 +14,7 @@ export function NavPrincipal() {
     <>
       <Link to="/produtos">Produtos</Link>
       {usuario ? <Link to="/pedidos">Meus pedidos</Link> : null}
+      {usuario ? <Link to="/enderecos">Meus endereços</Link> : null}
       {usuario?.papel === 'ADMIN' ? (
         <Link to="/admin">Painel Admin</Link>
       ) : null}

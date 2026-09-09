@@ -17,6 +17,9 @@ function criarPedido(situacao: Pedido['situacao'] = 'PENDENTE'): Pedido {
   return {
     id: 12, situacao, totalEmCentavos: 4500, criadoEm: '2026-09-08T12:00:00Z', usuarioId: 'cliente-teste',
     chaveDeIdempotencia: null, hashDoPayload: null,
+    enderecoId: 1, enderecoDestinatario: 'Fulano de Tal', enderecoCep: '01310100',
+    enderecoLogradouro: 'Av. Paulista', enderecoNumero: '1000', enderecoComplemento: null,
+    enderecoBairro: 'Bela Vista', enderecoCidade: 'São Paulo', enderecoUf: 'SP',
     itens: [{ id: 1, pedidoId: 12, produtoId: 9, nomeDoProduto: 'Produto da compra', precoUnitarioEmCentavos: 1500, quantidade: 3 }],
   };
 }

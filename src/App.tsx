@@ -18,6 +18,7 @@ import { TelaDeDetalheDoProduto } from './pages/products/tela-de-detalhe-do-prod
 import { TelaDeProdutos } from './pages/products/tela-de-produtos';
 import { TelaDeCarrinho } from './pages/carrinho/tela-de-carrinho';
 import { TelaDeMeusPedidos } from './pages/pedidos/tela-de-meus-pedidos';
+import { TelaDeEnderecos } from './pages/enderecos/tela-de-enderecos';
 import { TelaDeDetalheDoPedido } from './pages/pedidos/tela-de-detalhe-do-pedido';
 import { TelaDeCadastro } from './pages/tela-de-cadastro';
 import { TelaDeVerificacaoDeEmail } from './pages/tela-de-verificacao-de-email';
@@ -133,6 +134,14 @@ function AreaProtegida() {
           element={
             <RotaProtegida>
               <TelaDeMeusPedidos cliente={apiClient} />
+            </RotaProtegida>
+          }
+        />
+        <Route
+          path="/enderecos"
+          element={
+            <RotaProtegida>
+              <TelaDeEnderecos cliente={apiClient} />
             </RotaProtegida>
           }
         />

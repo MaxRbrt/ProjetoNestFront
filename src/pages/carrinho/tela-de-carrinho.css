@@ -34,3 +34,13 @@
   font-weight: 700;
   margin-bottom: var(--espaco-4);
 }
+
+.tela-carrinho__endereco {
+  margin-bottom: var(--espaco-4);
+  max-width: 28rem;
+}
+
+.tela-carrinho__endereco h2 {
+  font-size: 1rem;
+  margin-bottom: var(--espaco-2);
+}

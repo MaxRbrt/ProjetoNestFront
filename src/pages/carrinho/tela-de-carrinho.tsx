@@ -6,6 +6,7 @@ import { ApiError } from '../../api/cliente';
 import { buscarProduto } from '../../api/produtos';
 import type { Produto } from '../../api/produtos';
 import { criarPedido } from '../../api/pedidos';
+import { listarEnderecos, type Endereco } from '../../api/enderecos';
 import { useCarrinho } from '../../auth/contexto-do-carrinho';
 import { Cabecalho } from '../../components/cabecalho';
 import { NavPrincipal } from '../../components/nav-principal';
@@ -45,7 +46,48 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
   const [erroDeCarga, setErroDeCarga] = useState<string | null>(null);
   const [erroDeAcao, setErroDeAcao] = useState<string | null>(null);
   const [finalizando, setFinalizando] = useState(false);
+  const [enderecos, setEnderecos] = useState<Endereco[]>([]);
+  const [carregandoEnderecos, setCarregandoEnderecos] = useState(true);
+  const [enderecoSelecionadoId, setEnderecoSelecionadoId] = useState<
+    number | null
+  >(null);
   const chaveDeIdempotenciaRef = useRef<string | null>(null);
+
+  // ---------------------------------------------
+  // Endereços disponíveis para o checkout
+  // Pré-seleciona o principal (a API já devolve a lista com ele primeiro).
+  // Sem endereço nenhum, o botão de finalizar fica bloqueado — pedido sem
+  // destino de entrega não existe mais neste projeto.
+  // ---------------------------------------------
+  useEffect(() => {
+    const controlador = new AbortController();
+    let cancelado = false;
+
+    listarEnderecos(cliente, controlador.signal)
+      .then((lista) => {
+        if (cancelado) return;
+        setEnderecos(lista);
+        setEnderecoSelecionadoId((atual) => atual ?? lista[0]?.id ?? null);
+        setCarregandoEnderecos(false);
+      })
+      .catch((falha: unknown) => {
+        if (cancelado) return;
+        if (falha instanceof DOMException && falha.name === 'AbortError') return;
+        setCarregandoEnderecos(false);
+      });
+
+    return () => {
+      cancelado = true;
+      controlador.abort();
+    };
+  }, [cliente]);
+
+  // Trocar o endereço selecionado é uma decisão nova sobre o pedido, não um
+  // retry de rede: gerar outra chave evita que o backend recuse o reenvio
+  // como conflito de payload (a chave antiga já reflete o endereço anterior).
+  useEffect(() => {
+    chaveDeIdempotenciaRef.current = null;
+  }, [enderecoSelecionadoId]);
 
   useEffect(() => {
     chaveDeIdempotenciaRef.current = null;
@@ -91,6 +133,7 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
   );
 
   async function finalizarPedido() {
+    if (!enderecoSelecionadoId) return;
     setErroDeAcao(null);
     setFinalizando(true);
     try {
@@ -99,6 +142,7 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
       }
       const pedido = await criarPedido(
         cliente,
+        enderecoSelecionadoId,
         itens.map((item) => ({
           produtoId: item.produtoId,
           quantidade: item.quantidade,
@@ -196,8 +240,42 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
               Total: {formatarCentavos(total)}
             </p>
 
+            <div className="tela-carrinho__endereco">
+              <h2>Entregar em</h2>
+              {carregandoEnderecos ? (
+                <p role="status">Carregando endereços…</p>
+              ) : enderecos.length === 0 ? (
+                <p>
+                  Você ainda não tem um endereço cadastrado.{' '}
+                  <Link to="/enderecos">Cadastrar endereço</Link>
+                </p>
+              ) : (
+                <div className="campo">
+                  <label className="campo__rotulo" htmlFor="endereco-de-entrega">
+                    Endereço
+                  </label>
+                  <select
+                    id="endereco-de-entrega"
+                    className="campo__entrada"
+                    value={enderecoSelecionadoId ?? ''}
+                    onChange={(evento) =>
+                      setEnderecoSelecionadoId(Number(evento.target.value))
+                    }
+                  >
+                    {enderecos.map((endereco) => (
+                      <option key={endereco.id} value={endereco.id}>
+                        {endereco.apelido} — {endereco.logradouro},{' '}
+                        {endereco.numero}, {endereco.cidade}/{endereco.uf}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
             <Botao
               carregando={finalizando}
+              disabled={!enderecoSelecionadoId || carregandoEnderecos}
               onClick={() => void finalizarPedido()}
             >
               {finalizando ? 'Finalizando…' : 'Finalizar pedido'}

@@ -1,0 +1,67 @@
+.tela-enderecos {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: var(--espaco-6);
+}
+
+.tela-enderecos__vazio {
+  color: var(--cor-tinta-media);
+  margin-bottom: var(--espaco-4);
+}
+
+.tela-enderecos__lista {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--espaco-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+}
+
+.tela-enderecos__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--espaco-4);
+  background: var(--cor-superficie);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra-baixa);
+  padding: var(--espaco-4);
+}
+
+.tela-enderecos__item p {
+  color: var(--cor-tinta-media);
+  margin: var(--espaco-1) 0 0;
+}
+
+.tela-enderecos__selo {
+  display: inline-block;
+  margin-left: var(--espaco-2);
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--cor-acento);
+  color: white;
+  font-size: 0.75rem;
+}
+
+.tela-enderecos__acoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  flex-shrink: 0;
+}
+
+.tela-enderecos__formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  background: var(--cor-superficie);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra-baixa);
+  padding: var(--espaco-5);
+}
+
+.tela-enderecos__botoes-formulario {
+  display: flex;
+  gap: var(--espaco-3);
+}

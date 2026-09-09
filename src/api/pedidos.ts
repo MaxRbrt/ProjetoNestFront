@@ -21,6 +21,15 @@ export interface Pedido {
   usuarioId: string;
   chaveDeIdempotencia: string | null;
   hashDoPayload: string | null;
+  enderecoId: number | null;
+  enderecoDestinatario: string;
+  enderecoCep: string;
+  enderecoLogradouro: string;
+  enderecoNumero: string;
+  enderecoComplemento: string | null;
+  enderecoBairro: string;
+  enderecoCidade: string;
+  enderecoUf: string;
 }
 
 export interface ItemParaCriarPedido {
@@ -32,16 +41,19 @@ export interface ItemParaCriarPedido {
 // Criação de pedido com idempotência
 // A chave vai no cabeçalho HTTP Idempotency-Key, não no corpo: é o contrato
 // que o backend já implementa (índice único por usuário e chave). Retry de
-// rede com a mesma chave devolve o pedido já criado em vez de duplicar.
+// rede com a mesma chave devolve o pedido já criado em vez de duplicar. O
+// backend inclui enderecoId no hash de conferência do payload — reenviar a
+// mesma chave com outro endereço vira 409, não sobrescreve silenciosamente.
 // ---------------------------------------------
 export function criarPedido(
   cliente: ApiClient,
+  enderecoId: number,
   itens: ItemParaCriarPedido[],
   chaveDeIdempotencia: string,
 ): Promise<Pedido> {
   return cliente.post<Pedido>(
     '/orders',
-    { itens },
+    { enderecoId, itens },
     { cabecalhos: { 'Idempotency-Key': chaveDeIdempotencia } },
   );
 }

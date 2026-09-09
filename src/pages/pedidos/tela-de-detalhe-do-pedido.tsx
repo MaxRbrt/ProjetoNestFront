@@ -201,6 +201,20 @@ function ConteudoDoPedido({
             {ROTULO_DA_SITUACAO[pedido.situacao] ?? pedido.situacao}
           </p>
 
+          <div className="detalhe-pedido__endereco">
+            <h2>Endereço de entrega</h2>
+            <p>
+              {pedido.enderecoDestinatario} — {pedido.enderecoLogradouro},{' '}
+              {pedido.enderecoNumero}
+              {pedido.enderecoComplemento
+                ? `, ${pedido.enderecoComplemento}`
+                : ''}
+              {' — '}
+              {pedido.enderecoBairro}, {pedido.enderecoCidade}/
+              {pedido.enderecoUf}
+            </p>
+          </div>
+
           <div
             className="detalhe-pedido__rolagem"
             role="region"
