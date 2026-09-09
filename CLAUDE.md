@@ -11,18 +11,19 @@ neste mesmo diretório pai.
 ## Estado atual
 
 Fundação, autenticação, vitrine, painel administrativo e fluxo de compra do cliente prontos. Última
-atualização: 2026-09-08.
+atualização: 2026-09-09.
 
 | Área | Estado |
 |---|---|
 | Cliente HTTP | Token em memória, fila de refresh, tratamento de erro da API |
 | Sessão | Três estados (verificando/autenticado/anônimo), recuperação por cookie, rota protegida e rota restrita a ADMIN |
-| Telas | Login, cadastro, verificação de email, recuperação de senha (esqueci/redefinir), inicial autenticada, vitrine, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias, carrinho, meus pedidos, detalhe de pedido |
+| Telas | Login, cadastro, verificação de email, reenvio de verificação, recuperação de senha (esqueci/redefinir), inicial autenticada, vitrine, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias, carrinho, meus pedidos, detalhe de pedido |
 | Sistema visual | Tokens de cor, tipografia e motion; primitivos de botão, campo e aviso; subnavegação administrativa |
 | Vitrine | Completa — busca/categoria/página na URL, debounce, cancelamento, retry, estados de carregamento/vazio/erro e detalhe com retorno ao filtro |
 | Painel Admin | Completo — métricas, CRUD de catálogo e gestão de pedidos com filtro por situação, paginação na URL, detalhe, confirmação manual de pagamento e cancelamento |
 | Carrinho, pedidos | Completo — carrinho persistido em `localStorage` limpo no logout, adicionar com teto de estoque, checkout com `Idempotency-Key` estável entre retries, "meus pedidos" paginado, detalhe com cancelamento (`PENDENTE`→`CANCELADO`) — ver seção própria abaixo |
-| Testes | **Nenhum.** Todos removidos na auditoria de 2026-09-04, junto com a infraestrutura (`src/test/`, bloco `test` do `vite.config.ts`, scripts `test`/`test:watch`) — ver nota abaixo |
+| Dinheiro | **Centavos inteiros.** A API fala em `precoEmCentavos`/`totalEmCentavos`/`precoUnitarioEmCentavos`; conversão para exibição e para envio vive só em `src/utils/dinheiro.ts` |
+| Testes | Restaurados em 2026-09-09 (40 testes, `npm test`) — `ApiClient` (fila de refresh), `ProvedorDoCarrinho`, `dinheiro.ts`, gestão admin de pedidos |
 
 ## O contrato de autenticação define a arquitetura
 
@@ -204,6 +205,36 @@ com a senha nova, sucesso. Reuso do mesmo token (tentativa separada) devolveu o 
 corretamente. Nenhum teste automatizado (frontend sem infraestrutura de teste ativa nesta fase,
 mesmo critério dos blocos anteriores).
 
+## Reenvio de verificação de email — 2026-09-09
+
+Spec: `../projeto-test/docs/superpowers/specs/2026-09-09-reenvio-de-verificacao-design.md`. Última
+lacuna nas telas de autenticação: o backend já tinha `POST /auth/resend-verification` desde sempre,
+mas quem clicasse um link de verificação vencido ficava sem saída na própria aplicação.
+
+Arquivo novo: `src/pages/tela-de-reenviar-verificacao.tsx` — cópia estrutural de
+`TelaDeEsqueciSenha` (mesmo endpoint genérico-202, mesma ausência de enumeração de conta).
+Modificados: `src/pages/tela-de-verificacao-de-email.tsx` (link "Pedir um novo link" no estado de
+erro), `src/pages/tela-de-cadastro.tsx` (link "Reenviar" no estado "Confira seu email", cobre o
+caso de o primeiro email nunca ter chegado), `src/App.tsx` (rota `/reenviar-verificacao`, pública,
+fora da subárvore com `key` de identidade — mesmo cuidado já registrado na tarefa anterior).
+
+Revisão Codex: nenhum achado real — só uma nota P3 (mensagem de erro genérico de rede tem texto
+levemente diferente entre `TelaDeReenviarVerificacao` e `TelaDeCadastro`, "enviar" vs "cadastrar";
+o próprio Codex descartou como não-enumeração, natural por serem ações diferentes). Confirmado que
+os dois bugs da tarefa anterior (formulário descartado em qualquer erro, rota pública dentro da
+subárvore com key) não foram reintroduzidos.
+
+Validação: `npm run build` limpo (488 módulos). Clique real contra o backend local
+(`EMAIL_PROVIDER=file`): reenvio para conta já verificada (202, sem novo email — comportamento
+correto do backend), reenvio para conta recém-cadastrada não verificada (202, confirmado por curl),
+link "Pedir um novo link" a partir de token inválido em `/verificar-email` navegando corretamente,
+link "Reenviar" a partir do estado pós-cadastro. Nenhum teste automatizado, mesmo critério dos
+blocos anteriores. Contas de teste (`teste-reenvio@exemplo.local`,
+`teste-cadastro-verificacao-link@exemplo.local`) e a da tarefa anterior
+(`teste-recuperacao@exemplo.local`) removidas do banco de desenvolvimento ao final, via script
+descartável usando o `DataSource` do próprio backend (não SQL cru solto) — pedido do proprietário
+para não acumular dado de teste no banco real.
+
 ## Fluxo de compra do cliente — 2026-09-08
 
 Spec: `../projeto-test/docs/superpowers/specs/2026-09-08-fluxo-de-compra-design.md`. Plano executado
@@ -314,7 +345,40 @@ comentário solto no meio do corpo de função** — a explicação vai uma vez 
 
 TDD onde há lógica de verdade. Não há teste de aparência: animação e layout se verificam olhando.
 
-## Remoção de testes durante a auditoria de 2026-09
+## Infraestrutura de teste restaurada + dinheiro em centavos — 2026-09-09
+
+Roadmap: `../projeto-test/docs/superpowers/specs/2026-09-09-roadmap-nucleo-comercial.md`, Fases 0 e
+1. Reverte a decisão da seção seguinte — mantida abaixo como registro histórico, não como estado
+atual.
+
+**Infra:** bloco `test` de volta no `vite.config.ts` (`defineConfig` de `vitest/config`, `jsdom`,
+`src/test/setup.ts`), scripts `test`/`test:watch`. `include: ['src/**/*.{test,spec}.{ts,tsx}']`
+explícito — sem isso o Vitest varre a raiz inteira e pega qualquer teste solto fora de `src/`.
+
+**Achado ao ligar a infra:** os 19 testes de gestão administrativa de pedidos (bloco de 2026-09-08)
+viviam em `.superpowers/sdd/`, diretório local ignorado pelo git — "todos os testes passam"
+significava coisas diferentes em máquinas diferentes. Movidos para
+`src/pages/admin/gestao-de-pedidos.test.tsx`. Ao entrar em `src/`, pegaram um erro de tipo real que
+nunca tinha sido checado (`contexto = 'admin'` inferido como `string` numa prop que só aceita
+`'cliente' | 'admin'`) — só apareceu porque agora passam por `tsc -b`.
+
+**Testes novos:** `src/api/cliente.test.ts` (fila de renovação — armadilha 1) e
+`src/auth/contexto-do-carrinho.test.tsx` (persistência, limpeza no logout, soma sem teto — o teto
+fica no ponto de chamada, não no contexto). Os dois foram verificados quebrando o código de
+propósito: desligar a fila de renovação faz 5 requisições concorrentes disparar 5 renovações em vez
+de 1, e o teste pega.
+
+**Dinheiro:** contrato mudou (`preco`→`precoEmCentavos`, `total`→`totalEmCentavos`,
+`precoUnitario`→`precoUnitarioEmCentavos`), acompanhando a migration do backend. Sete cópias do
+mesmo `Intl.NumberFormat` espalhadas pelas telas viraram um helper único,
+`src/utils/dinheiro.ts` (`formatarCentavos`, `reaisParaCentavos`, `centavosParaReais`). O formulário
+de produto do admin digita reais e converte para centavos no envio, com vírgula ou ponto aceitos —
+teclado brasileiro usa vírgula, e recusar silenciosamente seria pior que aceitar as duas.
+
+Verificação: 40 testes (`npm test`), `npm run build` limpo, clique real conferindo vitrine
+(R$ 99,90), carrinho com quantidade 3 (R$ 299,70) e pedido criado com o mesmo total.
+
+## Remoção de testes durante a auditoria de 2026-09 (histórico — parcialmente revertido acima)
 
 Decisão do proprietário: reduzir o volume do código-fonte, mesmo motivo já registrado no backend.
 Removidos por bloco conforme a auditoria pasta a pasta avançou. **Recuperáveis do histórico do
