@@ -21,8 +21,9 @@ atualização: 2026-09-09.
 | Sistema visual | Tokens de cor, tipografia e motion; primitivos de botão, campo e aviso; subnavegação administrativa |
 | Vitrine | Completa — busca/categoria/página na URL, debounce, cancelamento, retry, estados de carregamento/vazio/erro e detalhe com retorno ao filtro |
 | Painel Admin | Completo — métricas, CRUD de catálogo e gestão de pedidos com filtro por situação, paginação na URL, detalhe, confirmação manual de pagamento e cancelamento |
-| Carrinho, pedidos | Completo — carrinho persistido em `localStorage` limpo no logout, adicionar com teto de estoque, checkout com `Idempotency-Key` estável entre retries, seleção de endereço de entrega, "meus pedidos" paginado, detalhe com endereço congelado e cancelamento (`PENDENTE`→`CANCELADO`) — ver seção própria abaixo |
+| Carrinho, pedidos | Completo — carrinho persistido em `localStorage` limpo no logout, adicionar com teto de estoque, checkout com `Idempotency-Key` estável entre retries, seleção de endereço e de frete, "meus pedidos" paginado, detalhe com endereço/frete congelados e cancelamento (`PENDENTE`→`CANCELADO`) — ver seção própria abaixo |
 | Endereços | Completo — listar/criar/editar/remover, marcar principal, seleção no checkout — 2026-09-09 |
+| Frete | Completo — cotação PAC/SEDEX no checkout com custo e prazo, total atualiza ao trocar modalidade — 2026-09-09 |
 | Dinheiro | **Centavos inteiros.** A API fala em `precoEmCentavos`/`totalEmCentavos`/`precoUnitarioEmCentavos`; conversão para exibição e para envio vive só em `src/utils/dinheiro.ts` |
 | Testes | Restaurados em 2026-09-09 (40 testes, `npm test`) — `ApiClient` (fila de refresh), `ProvedorDoCarrinho`, `dinheiro.ts`, gestão admin de pedidos |
 
@@ -415,6 +416,33 @@ diferentes) → pedido já criado continua mostrando o endereço original, não 
 automatizado novo no frontend para este bloco — a lógica que mais importava (congelamento,
 idempotência com endereço) mora no backend e já tem cobertura de integração lá; o frontend aqui é
 consumo direto do contrato.
+
+## Frete — 2026-09-09
+
+Roadmap: `../projeto-test/docs/superpowers/specs/2026-09-09-roadmap-nucleo-comercial.md`, Fase 3.
+
+Arquivo novo: `src/api/frete.ts` (`consultarFrete`). Modificados: `src/api/pedidos.ts`
+(`criarPedido` ganha o parâmetro `modalidadeDeFrete`; `Pedido` ganha `subtotalEmCentavos`,
+`freteEmCentavos`, `modalidadeDeFrete`, `prazoEmDiasUteis`), `src/pages/carrinho/tela-de-carrinho.tsx`
+(cotação de frete após escolher endereço, rádio PAC/SEDEX com custo e prazo, total = subtotal +
+frete), `src/pages/pedidos/tela-de-detalhe-do-pedido.tsx` (resumo subtotal/frete/total em `<dl>`).
+
+Cotação dispara só quando há endereço selecionado e o carrinho não está vazio — depende dos dois.
+Trocar de endereço reseta a modalidade escolhida (o custo da modalidade era para o endereço
+anterior) e a chave de idempotência (o backend inclui `modalidadeDeFrete` no hash de conferência,
+mesmo padrão de `enderecoId` já registrado na seção de endereços — ver `CLAUDE.md` do backend para
+o motivo de a Fase 3 já ter nascido incluindo isso, sem esperar achar o bug de novo).
+
+Validação: `tsc -b` e `npm run build` limpos (494 módulos). Clique real completo: endereço cadastrado
+em Manaus/AM (região Norte, custo mais alto de propósito para o teste ser visível) → cotação exibiu
+PAC R$ 30,00/12 dias úteis e SEDEX R$ 52,00/5 dias úteis → trocar de PAC para SEDEX atualizou o
+total de R$ 129,90 para R$ 151,90 em tempo real, sem recarregar → pedido criado com o resumo exato
+(subtotal R$ 99,90 + frete R$ 52,00 = R$ 151,90) → cancelamento confirmado. Nenhum teste automatizado
+novo no frontend — mesma decisão da seção de endereços: a lógica que importa (cálculo, anti-forjamento
+de custo, idempotência) mora no backend e já tem cobertura de integração lá.
+
+**Nota de processo:** desta vez a migration `AddShipping` no banco de desenvolvimento foi pedida e
+autorizada explicitamente antes de rodar — corrigindo o desvio registrado na Fase 2.
 
 ## Remoção de testes durante a auditoria de 2026-09 (histórico — parcialmente revertido acima)
 
