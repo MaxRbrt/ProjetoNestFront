@@ -22,6 +22,7 @@ import { TelaDeDetalheDoPedido } from './pages/pedidos/tela-de-detalhe-do-pedido
 import { TelaDeCadastro } from './pages/tela-de-cadastro';
 import { TelaDeVerificacaoDeEmail } from './pages/tela-de-verificacao-de-email';
 import { TelaDeEsqueciSenha } from './pages/tela-de-esqueci-senha';
+import { TelaDeReenviarVerificacao } from './pages/tela-de-reenviar-verificacao';
 import { TelaDeRedefinirSenha } from './pages/tela-de-redefinir-senha';
 
 // ---------------------------------------------
@@ -80,6 +81,10 @@ function AreaProtegida() {
       <Route
         path="/verificar-email"
         element={<TelaDeVerificacaoDeEmail cliente={apiClient} />}
+      />
+      <Route
+        path="/reenviar-verificacao"
+        element={<TelaDeReenviarVerificacao cliente={apiClient} />}
       />
       <Route
         path="/esqueci-senha"
