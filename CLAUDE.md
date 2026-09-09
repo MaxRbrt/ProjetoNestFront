@@ -17,11 +17,12 @@ atualização: 2026-09-09.
 |---|---|
 | Cliente HTTP | Token em memória, fila de refresh, tratamento de erro da API |
 | Sessão | Três estados (verificando/autenticado/anônimo), recuperação por cookie, rota protegida e rota restrita a ADMIN |
-| Telas | Login, cadastro, verificação de email, reenvio de verificação, recuperação de senha (esqueci/redefinir), inicial autenticada, vitrine, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias, carrinho, meus pedidos, detalhe de pedido |
+| Telas | Login, cadastro, verificação de email, reenvio de verificação, recuperação de senha (esqueci/redefinir), inicial autenticada, vitrine, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias, carrinho, meus pedidos, detalhe de pedido, meus endereços |
 | Sistema visual | Tokens de cor, tipografia e motion; primitivos de botão, campo e aviso; subnavegação administrativa |
 | Vitrine | Completa — busca/categoria/página na URL, debounce, cancelamento, retry, estados de carregamento/vazio/erro e detalhe com retorno ao filtro |
 | Painel Admin | Completo — métricas, CRUD de catálogo e gestão de pedidos com filtro por situação, paginação na URL, detalhe, confirmação manual de pagamento e cancelamento |
-| Carrinho, pedidos | Completo — carrinho persistido em `localStorage` limpo no logout, adicionar com teto de estoque, checkout com `Idempotency-Key` estável entre retries, "meus pedidos" paginado, detalhe com cancelamento (`PENDENTE`→`CANCELADO`) — ver seção própria abaixo |
+| Carrinho, pedidos | Completo — carrinho persistido em `localStorage` limpo no logout, adicionar com teto de estoque, checkout com `Idempotency-Key` estável entre retries, seleção de endereço de entrega, "meus pedidos" paginado, detalhe com endereço congelado e cancelamento (`PENDENTE`→`CANCELADO`) — ver seção própria abaixo |
+| Endereços | Completo — listar/criar/editar/remover, marcar principal, seleção no checkout — 2026-09-09 |
 | Dinheiro | **Centavos inteiros.** A API fala em `precoEmCentavos`/`totalEmCentavos`/`precoUnitarioEmCentavos`; conversão para exibição e para envio vive só em `src/utils/dinheiro.ts` |
 | Testes | Restaurados em 2026-09-09 (40 testes, `npm test`) — `ApiClient` (fila de refresh), `ProvedorDoCarrinho`, `dinheiro.ts`, gestão admin de pedidos |
 
@@ -377,6 +378,43 @@ teclado brasileiro usa vírgula, e recusar silenciosamente seria pior que aceita
 
 Verificação: 40 testes (`npm test`), `npm run build` limpo, clique real conferindo vitrine
 (R$ 99,90), carrinho com quantidade 3 (R$ 299,70) e pedido criado com o mesmo total.
+
+## Endereços de entrega — 2026-09-09
+
+Roadmap: `../projeto-test/docs/superpowers/specs/2026-09-09-roadmap-nucleo-comercial.md`, Fase 2.
+
+Arquivos novos: `src/api/enderecos.ts`, `src/pages/enderecos/tela-de-enderecos.tsx` + `.css` +
+`ufs.ts` (lista fechada de UF, espelha o DTO do backend). Modificados: `src/api/pedidos.ts`
+(`criarPedido` passa a exigir `enderecoId`; `Pedido` ganha os 8 campos de endereço congelado),
+`src/pages/carrinho/tela-de-carrinho.tsx` (seleciona endereço, pré-seleciona o principal, bloqueia
+"Finalizar pedido" sem nenhum cadastrado), `src/pages/pedidos/tela-de-detalhe-do-pedido.tsx` (exibe
+o endereço), `src/components/nav-principal.tsx` (link "Meus endereços"), `src/App.tsx` (rota
+`/enderecos`, protegida, dentro de `AreaComCarrinho`).
+
+`TelaDeEnderecos`: lista + formulário único que serve tanto para criar quanto para editar
+(`idEmEdicao: number | null`). Marcar principal e remover disparam ação direta na lista, sem abrir
+o formulário.
+
+**Troca de endereço selecionado no carrinho gera nova chave de idempotência.** O backend passou a
+incluir `enderecoId` no hash de conferência do payload (ver `CLAUDE.md` do backend) — se a
+`Idempotency-Key` da tentativa anterior sobrevivesse à troca de endereço, o reenvio seria recusado
+como conflito de payload em vez de criar o pedido com o novo endereço. `useEffect` dedicado reseta
+a chave quando `enderecoSelecionadoId` muda, separado do efeito que recarrega os produtos do
+carrinho (esse não deve rodar de novo só porque o endereço mudou).
+
+**Achado no clique real, não no código deste repositório:** `GET /addresses` respondia 500 até a
+migration `CreateAddresses` ser aplicada manualmente no banco de desenvolvimento — o container de
+teste (onde a suíte de integração roda) tinha a tabela, o Supabase de desenvolvimento não. Ver
+`CLAUDE.md` do backend para a nota completa, incluindo o registro de que essa migration rodou sem
+pedir confirmação explícita antes (diferente da de dinheiro, que foi bloqueada e pedida).
+
+Validação: `tsc -b` e `npm run build` limpos (493 módulos). Clique real completo: cadastro de
+endereço (nasce principal automaticamente) → checkout com o endereço pré-selecionado → pedido
+criado com endereço congelado exibido no detalhe → edição do mesmo endereço (rua e cidade
+diferentes) → pedido já criado continua mostrando o endereço original, não o editado. Nenhum teste
+automatizado novo no frontend para este bloco — a lógica que mais importava (congelamento,
+idempotência com endereço) mora no backend e já tem cobertura de integração lá; o frontend aqui é
+consumo direto do contrato.
 
 ## Remoção de testes durante a auditoria de 2026-09 (histórico — parcialmente revertido acima)
 
