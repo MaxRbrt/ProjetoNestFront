@@ -29,6 +29,11 @@
   width: 4rem;
 }
 
+.tela-carrinho__subtotal {
+  color: var(--cor-tinta-media);
+  margin-bottom: var(--espaco-4);
+}
+
 .tela-carrinho__total {
   font-size: 1.2rem;
   font-weight: 700;
@@ -43,4 +48,30 @@
 .tela-carrinho__endereco h2 {
   font-size: 1rem;
   margin-bottom: var(--espaco-2);
+}
+
+.tela-carrinho__frete {
+  margin-bottom: var(--espaco-4);
+  max-width: 28rem;
+}
+
+.tela-carrinho__frete h2 {
+  font-size: 1rem;
+  margin-bottom: var(--espaco-2);
+}
+
+.tela-carrinho__opcoes-de-frete {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tela-carrinho__opcao-de-frete {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  cursor: pointer;
 }

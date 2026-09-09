@@ -7,6 +7,7 @@ import { buscarProduto } from '../../api/produtos';
 import type { Produto } from '../../api/produtos';
 import { criarPedido } from '../../api/pedidos';
 import { listarEnderecos, type Endereco } from '../../api/enderecos';
+import { consultarFrete, type OpcaoDeFrete } from '../../api/frete';
 import { useCarrinho } from '../../auth/contexto-do-carrinho';
 import { Cabecalho } from '../../components/cabecalho';
 import { NavPrincipal } from '../../components/nav-principal';
@@ -51,6 +52,11 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
   const [enderecoSelecionadoId, setEnderecoSelecionadoId] = useState<
     number | null
   >(null);
+  const [opcoesDeFrete, setOpcoesDeFrete] = useState<OpcaoDeFrete[]>([]);
+  const [carregandoFrete, setCarregandoFrete] = useState(false);
+  const [erroDeFrete, setErroDeFrete] = useState<string | null>(null);
+  const [modalidadeSelecionada, setModalidadeSelecionada] =
+    useState<string | null>(null);
   const chaveDeIdempotenciaRef = useRef<string | null>(null);
 
   // ---------------------------------------------
@@ -82,12 +88,67 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
     };
   }, [cliente]);
 
-  // Trocar o endereço selecionado é uma decisão nova sobre o pedido, não um
-  // retry de rede: gerar outra chave evita que o backend recuse o reenvio
-  // como conflito de payload (a chave antiga já reflete o endereço anterior).
+  // ---------------------------------------------
+  // Cotação de frete
+  // Depende do endereço (região) e da quantidade total de itens do carrinho
+  // — não dispara antes de haver as duas coisas. Ao trocar de endereço, a
+  // modalidade escolhida é resetada: o custo daquela modalidade era para o
+  // endereço anterior, e mantê-la selecionada mostraria um preço que não é
+  // mais o real até a nova cotação chegar.
+  // ---------------------------------------------
+  useEffect(() => {
+    if (!enderecoSelecionadoId || itens.length === 0) {
+      setOpcoesDeFrete([]);
+      setModalidadeSelecionada(null);
+      return;
+    }
+
+    const controlador = new AbortController();
+    let cancelado = false;
+    setCarregandoFrete(true);
+    setErroDeFrete(null);
+    setModalidadeSelecionada(null);
+
+    consultarFrete(
+      cliente,
+      enderecoSelecionadoId,
+      itens.map((item) => ({
+        produtoId: item.produtoId,
+        quantidade: item.quantidade,
+      })),
+      controlador.signal,
+    )
+      .then((opcoes) => {
+        if (cancelado) return;
+        setOpcoesDeFrete(opcoes);
+        setModalidadeSelecionada(opcoes[0]?.modalidade ?? null);
+        setCarregandoFrete(false);
+      })
+      .catch((falha: unknown) => {
+        if (cancelado) return;
+        if (falha instanceof DOMException && falha.name === 'AbortError') return;
+        setErroDeFrete(
+          falha instanceof ApiError
+            ? falha.message
+            : 'Não foi possível calcular o frete agora.',
+        );
+        setCarregandoFrete(false);
+      });
+
+    return () => {
+      cancelado = true;
+      controlador.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cliente, enderecoSelecionadoId, itens]);
+
+  // Trocar o endereço ou a modalidade de frete é uma decisão nova sobre o
+  // pedido, não um retry de rede: gerar outra chave evita que o backend
+  // recuse o reenvio como conflito de payload (a chave antiga já reflete a
+  // escolha anterior — o backend inclui os dois no hash de conferência).
   useEffect(() => {
     chaveDeIdempotenciaRef.current = null;
-  }, [enderecoSelecionadoId]);
+  }, [enderecoSelecionadoId, modalidadeSelecionada]);
 
   useEffect(() => {
     chaveDeIdempotenciaRef.current = null;
@@ -127,13 +188,17 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
     };
   }, [cliente, itens]);
 
-  const total = linhas.reduce(
+  const subtotal = linhas.reduce(
     (soma, linha) => soma + linha.produto.precoEmCentavos * linha.quantidade,
     0,
   );
+  const opcaoSelecionada = opcoesDeFrete.find(
+    (opcao) => opcao.modalidade === modalidadeSelecionada,
+  );
+  const total = subtotal + (opcaoSelecionada?.custoEmCentavos ?? 0);
 
   async function finalizarPedido() {
-    if (!enderecoSelecionadoId) return;
+    if (!enderecoSelecionadoId || !modalidadeSelecionada) return;
     setErroDeAcao(null);
     setFinalizando(true);
     try {
@@ -143,6 +208,7 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
       const pedido = await criarPedido(
         cliente,
         enderecoSelecionadoId,
+        modalidadeSelecionada,
         itens.map((item) => ({
           produtoId: item.produtoId,
           quantidade: item.quantidade,
@@ -236,8 +302,8 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
               </tbody>
             </table>
 
-            <p className="tela-carrinho__total">
-              Total: {formatarCentavos(total)}
+            <p className="tela-carrinho__subtotal">
+              Subtotal: {formatarCentavos(subtotal)}
             </p>
 
             <div className="tela-carrinho__endereco">
@@ -273,9 +339,52 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
               )}
             </div>
 
+            {enderecoSelecionadoId ? (
+              <div className="tela-carrinho__frete">
+                <h2>Frete</h2>
+                {erroDeFrete ? <Aviso>{erroDeFrete}</Aviso> : null}
+                {!erroDeFrete && carregandoFrete ? (
+                  <p role="status">Calculando frete…</p>
+                ) : null}
+                {!erroDeFrete && !carregandoFrete && opcoesDeFrete.length > 0 ? (
+                  <fieldset className="tela-carrinho__opcoes-de-frete">
+                    <legend className="campo__rotulo">Modalidade</legend>
+                    {opcoesDeFrete.map((opcao) => (
+                      <label
+                        key={opcao.modalidade}
+                        className="tela-carrinho__opcao-de-frete"
+                      >
+                        <input
+                          type="radio"
+                          name="modalidade-de-frete"
+                          value={opcao.modalidade}
+                          checked={modalidadeSelecionada === opcao.modalidade}
+                          onChange={() =>
+                            setModalidadeSelecionada(opcao.modalidade)
+                          }
+                        />
+                        {opcao.modalidade} —{' '}
+                        {formatarCentavos(opcao.custoEmCentavos)} — até{' '}
+                        {opcao.prazoEmDiasUteis} dias úteis
+                      </label>
+                    ))}
+                  </fieldset>
+                ) : null}
+              </div>
+            ) : null}
+
+            <p className="tela-carrinho__total">
+              Total: {formatarCentavos(total)}
+            </p>
+
             <Botao
               carregando={finalizando}
-              disabled={!enderecoSelecionadoId || carregandoEnderecos}
+              disabled={
+                !enderecoSelecionadoId ||
+                carregandoEnderecos ||
+                !modalidadeSelecionada ||
+                carregandoFrete
+              }
               onClick={() => void finalizarPedido()}
             >
               {finalizando ? 'Finalizando…' : 'Finalizar pedido'}

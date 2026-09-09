@@ -247,9 +247,23 @@ function ConteudoDoPedido({
             </table>
           </div>
 
-          <p className="detalhe-pedido__total">
-            Total: {formatarCentavos(pedido.totalEmCentavos)}
-          </p>
+          <dl className="detalhe-pedido__resumo">
+            <div>
+              <dt>Subtotal</dt>
+              <dd>{formatarCentavos(pedido.subtotalEmCentavos)}</dd>
+            </div>
+            <div>
+              <dt>
+                Frete ({pedido.modalidadeDeFrete}, até{' '}
+                {pedido.prazoEmDiasUteis} dias úteis)
+              </dt>
+              <dd>{formatarCentavos(pedido.freteEmCentavos)}</dd>
+            </div>
+            <div className="detalhe-pedido__resumo-total">
+              <dt>Total</dt>
+              <dd>{formatarCentavos(pedido.totalEmCentavos)}</dd>
+            </div>
+          </dl>
 
           <div className="detalhe-pedido__acoes">
             {contexto === 'admin' && pedido.situacao === 'PENDENTE' ? (

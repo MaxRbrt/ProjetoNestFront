@@ -15,7 +15,8 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 function criarPedido(situacao: Pedido['situacao'] = 'PENDENTE'): Pedido {
   return {
-    id: 12, situacao, totalEmCentavos: 4500, criadoEm: '2026-09-08T12:00:00Z', usuarioId: 'cliente-teste',
+    id: 12, situacao, subtotalEmCentavos: 4500, freteEmCentavos: 0, modalidadeDeFrete: 'PAC', prazoEmDiasUteis: 5,
+    totalEmCentavos: 4500, criadoEm: '2026-09-08T12:00:00Z', usuarioId: 'cliente-teste',
     chaveDeIdempotencia: null, hashDoPayload: null,
     enderecoId: 1, enderecoDestinatario: 'Fulano de Tal', enderecoCep: '01310100',
     enderecoLogradouro: 'Av. Paulista', enderecoNumero: '1000', enderecoComplemento: null,

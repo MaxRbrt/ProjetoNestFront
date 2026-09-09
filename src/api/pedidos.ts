@@ -14,6 +14,10 @@ export type SituacaoDoPedido = 'PENDENTE' | 'PAGO' | 'CANCELADO';
 
 export interface Pedido {
   id: number;
+  subtotalEmCentavos: number;
+  freteEmCentavos: number;
+  modalidadeDeFrete: string;
+  prazoEmDiasUteis: number;
   totalEmCentavos: number;
   criadoEm: string;
   itens: ItemDoPedido[];
@@ -42,18 +46,21 @@ export interface ItemParaCriarPedido {
 // A chave vai no cabeçalho HTTP Idempotency-Key, não no corpo: é o contrato
 // que o backend já implementa (índice único por usuário e chave). Retry de
 // rede com a mesma chave devolve o pedido já criado em vez de duplicar. O
-// backend inclui enderecoId no hash de conferência do payload — reenviar a
-// mesma chave com outro endereço vira 409, não sobrescreve silenciosamente.
+// backend inclui enderecoId e modalidadeDeFrete no hash de conferência do
+// payload — reenviar a mesma chave com um dos dois diferente vira 409, não
+// sobrescreve silenciosamente. modalidadeDeFrete é só a escolha ('PAC' ou
+// 'SEDEX'): o custo é sempre recalculado no servidor, nunca enviado daqui.
 // ---------------------------------------------
 export function criarPedido(
   cliente: ApiClient,
   enderecoId: number,
+  modalidadeDeFrete: string,
   itens: ItemParaCriarPedido[],
   chaveDeIdempotencia: string,
 ): Promise<Pedido> {
   return cliente.post<Pedido>(
     '/orders',
-    { enderecoId, itens },
+    { enderecoId, modalidadeDeFrete, itens },
     { cabecalhos: { 'Idempotency-Key': chaveDeIdempotencia } },
   );
 }
