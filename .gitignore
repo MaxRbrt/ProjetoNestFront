@@ -36,3 +36,5 @@ coverage
 .playwright-cli/
 *.png
 .env.serena/
+
+/.serena/
