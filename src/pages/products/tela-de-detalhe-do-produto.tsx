@@ -1,3 +1,4 @@
+import { formatarCentavos } from '../../utils/dinheiro';
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -12,11 +13,6 @@ import './tela-de-detalhe-do-produto.css';
 interface PropsDaTela {
   cliente: ApiClient;
 }
-
-const FORMATADOR_DE_PRECO = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-});
 
 // ---------------------------------------------
 // Detalhe do produto
@@ -88,7 +84,7 @@ export function TelaDeDetalheDoProduto({ cliente }: PropsDaTela) {
             <div className="detalhe-produto__corpo">
               <h1 className="detalhe-produto__nome">{produto.nome}</h1>
               <p className="detalhe-produto__preco">
-                {FORMATADOR_DE_PRECO.format(produto.preco)}
+                {formatarCentavos(produto.precoEmCentavos)}
               </p>
               <p className="detalhe-produto__estoque">
                 {produto.estoque > 0

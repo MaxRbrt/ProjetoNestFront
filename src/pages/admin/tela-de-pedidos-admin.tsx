@@ -1,3 +1,4 @@
+import { formatarCentavos } from '../../utils/dinheiro';
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { ApiError, type ApiClient } from '../../api/cliente';
@@ -17,10 +18,6 @@ const SITUACOES: Record<SituacaoDoPedido, string> = {
   PAGO: 'Pago',
   CANCELADO: 'Cancelado',
 };
-const FORMATADOR_DE_PRECO = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-});
 const FORMATADOR_DE_DATA = new Intl.DateTimeFormat('pt-BR', {
   dateStyle: 'short',
   timeStyle: 'short',
@@ -222,7 +219,7 @@ function ListaDePedidos({
                   </Link>
                 </td>
                 <td>{FORMATADOR_DE_DATA.format(new Date(pedido.criadoEm))}</td>
-                <td>{FORMATADOR_DE_PRECO.format(pedido.total)}</td>
+                <td>{formatarCentavos(pedido.totalEmCentavos)}</td>
                 <td>
                   <span
                     className={`admin-pedidos__situacao admin-pedidos__situacao--${pedido.situacao.toLowerCase()}`}

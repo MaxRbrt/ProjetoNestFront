@@ -1,3 +1,4 @@
+import { formatarCentavos } from '../../utils/dinheiro';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import type { ApiClient } from '../../api/cliente';
@@ -13,11 +14,6 @@ interface PropsDaTela {
   cliente: ApiClient;
   contexto?: 'cliente' | 'admin';
 }
-
-const FORMATADOR_DE_PRECO = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-});
 
 const FORMATADOR_DE_DATA = new Intl.DateTimeFormat('pt-BR', {
   dateStyle: 'short',
@@ -224,11 +220,11 @@ function ConteudoDoPedido({
                 {pedido.itens.map((item) => (
                   <tr key={item.id}>
                     <td>{item.nomeDoProduto}</td>
-                    <td>{FORMATADOR_DE_PRECO.format(item.precoUnitario)}</td>
+                    <td>{formatarCentavos(item.precoUnitarioEmCentavos)}</td>
                     <td>{item.quantidade}</td>
                     <td>
-                      {FORMATADOR_DE_PRECO.format(
-                        item.precoUnitario * item.quantidade,
+                      {formatarCentavos(
+                        item.precoUnitarioEmCentavos * item.quantidade,
                       )}
                     </td>
                   </tr>
@@ -238,7 +234,7 @@ function ConteudoDoPedido({
           </div>
 
           <p className="detalhe-pedido__total">
-            Total: {FORMATADOR_DE_PRECO.format(pedido.total)}
+            Total: {formatarCentavos(pedido.totalEmCentavos)}
           </p>
 
           <div className="detalhe-pedido__acoes">

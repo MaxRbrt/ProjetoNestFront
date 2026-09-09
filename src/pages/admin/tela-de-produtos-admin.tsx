@@ -1,3 +1,4 @@
+import { formatarCentavos } from '../../utils/dinheiro';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ApiClient } from '../../api/cliente';
@@ -11,11 +12,6 @@ import './tela-de-produtos-admin.css';
 interface PropsDaTela {
   cliente: ApiClient;
 }
-
-const FORMATADOR_DE_PRECO = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-});
 
 // ---------------------------------------------
 // Listagem de produtos do painel admin
@@ -81,7 +77,7 @@ export function TelaDeProdutosAdmin({ cliente }: PropsDaTela) {
             {produtos.dados.map((produto) => (
               <tr key={produto.id}>
                 <td>{produto.nome}</td>
-                <td>{FORMATADOR_DE_PRECO.format(produto.preco)}</td>
+                <td>{formatarCentavos(produto.precoEmCentavos)}</td>
                 <td>{produto.estoque}</td>
                 <td className="admin-tabela__acoes">
                   <Link

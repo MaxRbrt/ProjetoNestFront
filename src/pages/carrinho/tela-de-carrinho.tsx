@@ -1,3 +1,4 @@
+import { formatarCentavos } from '../../utils/dinheiro';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { ApiClient } from '../../api/cliente';
@@ -14,11 +15,6 @@ import './tela-de-carrinho.css';
 interface PropsDaTela {
   cliente: ApiClient;
 }
-
-const FORMATADOR_DE_PRECO = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-});
 
 interface LinhaDoCarrinho {
   produto: Produto;
@@ -90,7 +86,7 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
   }, [cliente, itens]);
 
   const total = linhas.reduce(
-    (soma, linha) => soma + linha.produto.preco * linha.quantidade,
+    (soma, linha) => soma + linha.produto.precoEmCentavos * linha.quantidade,
     0,
   );
 
@@ -159,7 +155,7 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
                 {linhas.map((linha) => (
                   <tr key={linha.produto.id}>
                     <td>{linha.produto.nome}</td>
-                    <td>{FORMATADOR_DE_PRECO.format(linha.produto.preco)}</td>
+                    <td>{formatarCentavos(linha.produto.precoEmCentavos)}</td>
                     <td>
                       <input
                         type="number"
@@ -178,8 +174,8 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
                       />
                     </td>
                     <td>
-                      {FORMATADOR_DE_PRECO.format(
-                        linha.produto.preco * linha.quantidade,
+                      {formatarCentavos(
+                        linha.produto.precoEmCentavos * linha.quantidade,
                       )}
                     </td>
                     <td>
@@ -197,7 +193,7 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
             </table>
 
             <p className="tela-carrinho__total">
-              Total: {FORMATADOR_DE_PRECO.format(total)}
+              Total: {formatarCentavos(total)}
             </p>
 
             <Botao
