@@ -1,13 +1,14 @@
 import { formatarCentavos } from '../../utils/dinheiro';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import type { ApiClient } from '../../api/cliente';
 import { ApiError } from '../../api/cliente';
 import { atualizarSituacaoDoPedido, buscarPedido } from '../../api/pedidos';
 import type { Pedido, SituacaoDoPedido } from '../../api/pedidos';
+import { iniciarPagamento } from '../../api/pagamentos';
 import { Cabecalho } from '../../components/cabecalho';
 import { NavPrincipal } from '../../components/nav-principal';
-import { Aviso, Botao } from '../../components/primitivos';
+import { Aviso, Botao, Campo } from '../../components/primitivos';
 import './tela-de-detalhe-do-pedido.css';
 
 interface PropsDaTela {
@@ -24,7 +25,18 @@ const ROTULO_DA_SITUACAO: Record<string, string> = {
   PENDENTE: 'Pendente',
   PAGO: 'Pago',
   CANCELADO: 'Cancelado',
+  ENVIADO: 'Enviado',
+  ENTREGUE: 'Entregue',
 };
+
+// ---------------------------------------------
+// Situações alcançáveis por PATCH de situação
+// PAGO fica de fora de propósito: desde a Fase 4 essa transição pertence
+// exclusivamente ao webhook assinado do módulo de pagamento, e o backend
+// recusa o PATCH mesmo vindo de ADMIN. Ter o tipo aqui faz o compilador
+// impedir que um botão de "marcar como pago" volte por engano.
+// ---------------------------------------------
+type SituacaoAlteravel = Exclude<SituacaoDoPedido, 'PENDENTE' | 'PAGO'>;
 
 // ---------------------------------------------
 // Detalhe compartilhado pelo cliente e painel administrativo
@@ -132,15 +144,14 @@ function ConteudoDoPedido({
     };
   }, [cliente, id, tentativa]);
 
-  async function alterarComConfirmacao(
-    situacao: Exclude<SituacaoDoPedido, 'PENDENTE'>,
-  ) {
+  async function alterarComConfirmacao(situacao: SituacaoAlteravel) {
     if (escrevendo.current || carregando || precisaAtualizar || !pedido) return;
-    const mensagem =
-      situacao === 'PAGO'
-        ? `Confirmar que o pagamento do pedido #${id} foi recebido? Esta ação apenas registra o pagamento.`
-        : `Cancelar o pedido #${id}? Os itens serão devolvidos ao estoque. Esta ação não pode ser desfeita.${pedido.situacao === 'PAGO' ? ' O reembolso financeiro deve ser realizado separadamente.' : ''}`;
-    if (!window.confirm(mensagem)) return;
+    const mensagens: Record<SituacaoAlteravel, string> = {
+      CANCELADO: `Cancelar o pedido #${id}? Os itens serão devolvidos ao estoque. Esta ação não pode ser desfeita.${pedido.situacao === 'PAGO' ? ' O reembolso financeiro deve ser realizado separadamente.' : ''}`,
+      ENVIADO: `Marcar o pedido #${id} como enviado?`,
+      ENTREGUE: `Marcar o pedido #${id} como entregue?`,
+    };
+    if (!window.confirm(mensagens[situacao])) return;
     escrevendo.current = true;
     setErroDeAcao(null);
     setSucesso(null);
@@ -149,11 +160,12 @@ function ConteudoDoPedido({
       const atualizado = await atualizarSituacaoDoPedido(cliente, id, situacao);
       if (!montado.current) return;
       setPedido(atualizado);
-      setSucesso(
-        situacao === 'PAGO'
-          ? 'Pagamento registrado.'
-          : 'Pedido cancelado. Estoque devolvido.',
-      );
+      const mensagensDeSucesso: Record<SituacaoAlteravel, string> = {
+        CANCELADO: 'Pedido cancelado. Estoque devolvido.',
+        ENVIADO: 'Pedido marcado como enviado.',
+        ENTREGUE: 'Pedido marcado como entregue.',
+      };
+      setSucesso(mensagensDeSucesso[situacao]);
     } catch (falha) {
       if (!montado.current) return;
       setPrecisaAtualizar(true);
@@ -265,16 +277,41 @@ function ConteudoDoPedido({
             </div>
           </dl>
 
+          {contexto === 'cliente' && pedido.situacao === 'PENDENTE' ? (
+            <FormularioDePagamento
+              cliente={cliente}
+              pedidoId={id}
+              bloqueado={bloqueado}
+              aoConfirmar={(atualizado) => {
+                setPedido(atualizado);
+                setSucesso(null);
+              }}
+              aoFalhaAmbigua={() => {
+                setPrecisaAtualizar(true);
+                setErroDeAcao(
+                  'Não foi possível confirmar o resultado do pagamento. Atualize o pedido para conferir a situação antes de tentar de novo.',
+                );
+              }}
+            />
+          ) : null}
+
           <div className="detalhe-pedido__acoes">
-            {contexto === 'admin' && pedido.situacao === 'PENDENTE' ? (
+            {contexto === 'admin' && pedido.situacao === 'PAGO' ? (
               <Botao
                 disabled={bloqueado}
-                carregando={acaoEmCurso === 'PAGO'}
-                onClick={() => void alterarComConfirmacao('PAGO')}
+                carregando={acaoEmCurso === 'ENVIADO'}
+                onClick={() => void alterarComConfirmacao('ENVIADO')}
               >
-                {acaoEmCurso === 'PAGO'
-                  ? 'Registrando pagamento…'
-                  : 'Marcar como pago'}
+                {acaoEmCurso === 'ENVIADO' ? 'Marcando…' : 'Marcar como enviado'}
+              </Botao>
+            ) : null}
+            {contexto === 'admin' && pedido.situacao === 'ENVIADO' ? (
+              <Botao
+                disabled={bloqueado}
+                carregando={acaoEmCurso === 'ENTREGUE'}
+                onClick={() => void alterarComConfirmacao('ENTREGUE')}
+              >
+                {acaoEmCurso === 'ENTREGUE' ? 'Marcando…' : 'Marcar como entregue'}
               </Botao>
             ) : null}
             {pedido.situacao === 'PENDENTE' ||
@@ -294,5 +331,87 @@ function ConteudoDoPedido({
         </>
       ) : null}
     </>
+  );
+}
+
+// ---------------------------------------------
+// Formulário de pagamento
+// Só aparece para o cliente com pedido PENDENTE. O provedor simulado
+// resolve na mesma chamada — não existe "aguardando confirmação assíncrona"
+// do lado da interface, então o resultado (aprovado ou recusado) já volta
+// no retorno de iniciarPagamento. Recusado mantém o formulário visível para
+// tentar de novo com outro cartão, mesmo padrão de erro recuperável já
+// usado em TelaDeRedefinirSenha.
+//
+// Uma exceção é diferente de uma recusa: não dá para saber daqui se o
+// pagamento foi processado no servidor e só a confirmação local (a resposta
+// do POST ou o GET seguinte) se perdeu. Seguir mostrando o pedido como
+// PENDENTE seria enganoso, e liberar nova tentativa às cegas esbarraria num
+// 409 sem explicação — por isso o catch delega ao mecanismo de "Atualizar
+// pedido" do componente pai, o mesmo que alterarComConfirmacao já usa para
+// esta classe de falha.
+// ---------------------------------------------
+function FormularioDePagamento({
+  cliente,
+  pedidoId,
+  bloqueado,
+  aoConfirmar,
+  aoFalhaAmbigua,
+}: {
+  cliente: ApiClient;
+  pedidoId: number;
+  bloqueado: boolean;
+  aoConfirmar: (pedidoAtualizado: Pedido) => void;
+  aoFalhaAmbigua: () => void;
+}) {
+  const [numeroDoCartao, setNumeroDoCartao] = useState('');
+  const [pagando, setPagando] = useState(false);
+  const [recusado, setRecusado] = useState<string | null>(null);
+
+  async function aoEnviar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    setRecusado(null);
+    setPagando(true);
+    try {
+      const pagamento = await iniciarPagamento(cliente, pedidoId, numeroDoCartao);
+      if (pagamento.status === 'RECUSADO') {
+        setRecusado(
+          pagamento.motivoDeRecusa ?? 'Cartão recusado. Tente outro cartão.',
+        );
+        return;
+      }
+      const pedidoAtualizado = await buscarPedido(
+        cliente,
+        pedidoId,
+        new AbortController().signal,
+      );
+      aoConfirmar(pedidoAtualizado);
+    } catch {
+      aoFalhaAmbigua();
+    } finally {
+      setPagando(false);
+    }
+  }
+
+  return (
+    <div className="detalhe-pedido__pagamento">
+      <h2>Pagamento</h2>
+      {recusado ? <Aviso>{recusado}</Aviso> : null}
+      <form onSubmit={aoEnviar} className="detalhe-pedido__formulario-pagamento">
+        <Campo
+          rotulo="Número do cartão"
+          placeholder="0000000000000000"
+          inputMode="numeric"
+          maxLength={16}
+          value={numeroDoCartao}
+          onChange={(e) => setNumeroDoCartao(e.target.value.replace(/\D/g, ''))}
+          ajuda="Simulado: qualquer número de 16 dígitos aprova, exceto terminado em 0002."
+          required
+        />
+        <Botao type="submit" disabled={bloqueado} carregando={pagando}>
+          {pagando ? 'Processando…' : 'Pagar'}
+        </Botao>
+      </form>
+    </div>
   );
 }

@@ -94,6 +94,13 @@ describe('ProvedorDoCarrinho', () => {
     expect(screen.getByTestId('total').textContent).toBe('2');
   });
 
+  // ---------------------------------------------
+  // Soma sem teto de estoque
+  // O contexto soma sem teto de propósito: o limite de estoque é aplicado no
+  // ponto de chamada (tela de detalhe do produto), onde a quantidade
+  // disponível é conhecida. Este teste fixa esse contrato — se alguém mover
+  // o teto para cá, ele quebra e a decisão volta a ser consciente.
+  // ---------------------------------------------
   it('soma quantidade quando o mesmo produto é adicionado de novo', () => {
     situacaoAtual = 'autenticado';
     montar();
@@ -101,10 +108,6 @@ describe('ProvedorDoCarrinho', () => {
     clicar('adicionar');
     clicar('adicionar');
 
-    // O contexto soma sem teto de propósito: o limite de estoque é aplicado no
-    // ponto de chamada (tela de detalhe do produto), onde a quantidade
-    // disponível é conhecida. Este teste fixa esse contrato — se alguém mover
-    // o teto para cá, ele quebra e a decisão volta a ser consciente.
     expect(screen.getByTestId('total').textContent).toBe('4');
   });
 
@@ -129,6 +132,11 @@ describe('ProvedorDoCarrinho', () => {
     expect(JSON.parse(localStorage.getItem('carrinho') ?? '[]')).toEqual([]);
   });
 
+  // ---------------------------------------------
+  // Limpeza ao sair
+  // Sair não pode deixar o carrinho do usuário anterior num computador
+  // compartilhado — mesma razão da marca de saída pendente.
+  // ---------------------------------------------
   it('esvazia o carrinho quando a sessão vira anônima', () => {
     situacaoAtual = 'autenticado';
     localStorage.setItem(
@@ -139,8 +147,6 @@ describe('ProvedorDoCarrinho', () => {
     const { rerender } = montar();
     expect(screen.getByTestId('total').textContent).toBe('5');
 
-    // sair não pode deixar o carrinho do usuário anterior num computador
-    // compartilhado — mesma razão da marca de saída pendente
     situacaoAtual = 'anonimo';
     act(() => {
       rerender(

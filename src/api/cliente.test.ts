@@ -114,11 +114,15 @@ describe('ApiClient — fila de renovação', () => {
     expect(cliente.temSessao()).toBe(false);
   });
 
+  // ---------------------------------------------
+  // 401 em rota de credencial
+  // Senha errada no login responde 401; tratar isso como sessão expirada
+  // faria a mensagem do refresh sobrescrever a real — armadilha nº 2 do
+  // CLAUDE.md.
+  // ---------------------------------------------
   it('401 em rota de credencial não dispara renovação', async () => {
     const { cliente, chamadas } = criarCliente();
 
-    // senha errada no login responde 401; tratar como sessão expirada faria a
-    // mensagem do refresh sobrescrever a real — armadilha nº 2 do CLAUDE.md
     await expect(
       cliente.post('/auth/login', { email: 'a@b.c', senha: 'errada' }),
     ).rejects.toBeInstanceOf(ApiError);

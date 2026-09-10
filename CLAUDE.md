@@ -10,22 +10,23 @@ neste mesmo diretório pai.
 
 ## Estado atual
 
-Fundação, autenticação, vitrine, painel administrativo e fluxo de compra do cliente prontos. Última
-atualização: 2026-09-09.
+Fundação, autenticação, vitrine, painel administrativo, fluxo de compra do cliente e pagamento
+simulado com ciclo de entrega prontos. Última atualização: 2026-09-10.
 
 | Área | Estado |
 |---|---|
 | Cliente HTTP | Token em memória, fila de refresh, tratamento de erro da API |
 | Sessão | Três estados (verificando/autenticado/anônimo), recuperação por cookie, rota protegida e rota restrita a ADMIN |
-| Telas | Login, cadastro, verificação de email, reenvio de verificação, recuperação de senha (esqueci/redefinir), inicial autenticada, vitrine, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias, carrinho, meus pedidos, detalhe de pedido, meus endereços |
+| Telas | Login, cadastro, verificação de email, reenvio de verificação, recuperação de senha (esqueci/redefinir), inicial autenticada, vitrine, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias, carrinho, meus pedidos, detalhe de pedido (com pagamento), meus endereços |
+| Pagamento | Completo — formulário de cartão simulado no detalhe do pedido (`PENDENTE`), aprovação/recusa com retry, `PAGO`→`ENVIADO`→`ENTREGUE` só via ADMIN — 2026-09-10 |
 | Sistema visual | Tokens de cor, tipografia e motion; primitivos de botão, campo e aviso; subnavegação administrativa |
 | Vitrine | Completa — busca/categoria/página na URL, debounce, cancelamento, retry, estados de carregamento/vazio/erro e detalhe com retorno ao filtro |
-| Painel Admin | Completo — métricas, CRUD de catálogo e gestão de pedidos com filtro por situação, paginação na URL, detalhe, confirmação manual de pagamento e cancelamento |
+| Painel Admin | Completo — métricas, CRUD de catálogo e gestão de pedidos com filtro por situação, paginação na URL, detalhe, cancelamento e passos de logística (enviado/entregue). Sem confirmação manual de pagamento: removida em 2026-09-10, ver seção de pagamento |
 | Carrinho, pedidos | Completo — carrinho persistido em `localStorage` limpo no logout, adicionar com teto de estoque, checkout com `Idempotency-Key` estável entre retries, seleção de endereço e de frete, "meus pedidos" paginado, detalhe com endereço/frete congelados e cancelamento (`PENDENTE`→`CANCELADO`) — ver seção própria abaixo |
 | Endereços | Completo — listar/criar/editar/remover, marcar principal, seleção no checkout — 2026-09-09 |
 | Frete | Completo — cotação PAC/SEDEX no checkout com custo e prazo, total atualiza ao trocar modalidade — 2026-09-09 |
 | Dinheiro | **Centavos inteiros.** A API fala em `precoEmCentavos`/`totalEmCentavos`/`precoUnitarioEmCentavos`; conversão para exibição e para envio vive só em `src/utils/dinheiro.ts` |
-| Testes | Restaurados em 2026-09-09 (40 testes, `npm test`) — `ApiClient` (fila de refresh), `ProvedorDoCarrinho`, `dinheiro.ts`, gestão admin de pedidos |
+| Testes | 45 testes (`npm test`) — `ApiClient` (fila de refresh), `ProvedorDoCarrinho`, `dinheiro.ts`, gestão admin de pedidos, pagamento (incl. falha ambígua) |
 
 ## O contrato de autenticação define a arquitetura
 
@@ -444,6 +445,82 @@ de custo, idempotência) mora no backend e já tem cobertura de integração lá
 **Nota de processo:** desta vez a migration `AddShipping` no banco de desenvolvimento foi pedida e
 autorizada explicitamente antes de rodar — corrigindo o desvio registrado na Fase 2.
 
+## Pagamento simulado + ciclo de entrega — 2026-09-10
+
+Roadmap: `../projeto-test/docs/superpowers/specs/2026-09-09-roadmap-nucleo-comercial.md`, Fase 4 —
+última fase do núcleo comercial. Backend concentra toda a lógica de aprovação/recusa, assinatura de
+webhook e travas de concorrência (ver `CLAUDE.md` do backend, seção da mesma data, para a saga
+completa de lock/freshness); o frontend só consome o contrato novo.
+
+Arquivo novo: `src/api/pagamentos.ts` (`iniciarPagamento`, `listarPagamentos`). Modificados:
+`src/api/pedidos.ts` (`SituacaoDoPedido` ganha `ENVIADO`/`ENTREGUE`), `src/pages/pedidos/tela-de-
+detalhe-do-pedido.tsx` (novo componente `FormularioDePagamento` — campo único de número de cartão,
+exibido só quando `situacao === 'PENDENTE'`; botões admin "Marcar como enviado"/"Marcar como
+entregue" nas situações `PAGO`/`ENVIADO`, mesmo padrão de confirmação `window.confirm` já usado para
+pagamento manual/cancelamento) + `.css` (estilos do formulário), `src/pages/admin/tela-de-pedidos-
+admin.tsx` + `.css` (`SITUACOES` e badges de situação cobrindo os dois estados novos).
+
+**Erro de recusa é recuperável, não terminal** — mesmo critério já registrado para
+`TelaDeRedefinirSenha` (seção de recuperação de senha) e para o formulário de reenvio: cartão
+recusado mostra `Aviso` inline com o motivo, mantém o formulário visível e o campo preenchido, para
+o cliente corrigir e tentar de novo sem perder contexto. Só a listagem falhar de verdade (erro de
+rede na consulta) usa o padrão de "carregando"/"tentar novamente" do resto do projeto.
+
+Validação: `npx tsc -b` e `npm run build` limpos. Clique real de ponta a ponta contra backend e
+frontend locais (`EMAIL_PROVIDER=file`): cadastro → verificação → endereço cadastrado (São
+Paulo/SP) → carrinho com frete PAC → pedido criado (`PENDENTE`) → pagamento com cartão aprovado
+(`4111111111111111`) → `PAGO` confirmado, formulário de pagamento e botão de cancelar somem
+corretamente → segundo pedido pago com cartão terminado em `0002` → recusado, aviso exibido, pedido
+continua `PENDENTE`, formulário disponível para nova tentativa → retry com cartão aprovado → `PAGO`
+→ promovido o usuário de teste a ADMIN via `npm run seed:admin` (autorizado explicitamente antes de
+rodar, mesmo critério de migration) só para testar a rota `/admin/pedidos/:id` → "Marcar como
+enviado" → `ENVIADO`, botão de cancelar continua ausente (correto, pedido enviado não cancela) →
+"Marcar como entregue" → `ENTREGUE`, tela terminal sem nenhum botão de ação. Usuário, endereço,
+pedidos e pagamentos de teste removidos do banco de desenvolvimento ao final via script descartável
+usando o `DataSource` do próprio backend, com confirmação prévia do proprietário antes da promoção a
+ADMIN (mutação de papel em dado real). Nenhum teste automatizado novo no frontend — mesma decisão
+das duas seções anteriores: a lógica que importa (assinatura de webhook, idempotência, travas de
+concorrência, anti-forjamento de valor) mora no backend e já tem cobertura de integração lá.
+
+**Revisão adversarial do Codex — 2 achados que tocaram este repositório (2026-09-10).** Rodada
+depois da fase já estar verificada por clique real; os dois sobreviveram a isso. Ver o `CLAUDE.md`
+do backend para a lista completa dos três achados.
+
+- **Falha ambígua no pagamento deixava o comprador no escuro.** Se o POST de pagamento fosse
+  processado no servidor mas a resposta (ou o `buscarPedido` seguinte) se perdesse, o `catch` do
+  `FormularioDePagamento` só mostrava erro genérico e liberava "Pagar" outra vez — a tela seguia
+  exibindo `PENDENTE` um pedido já `PAGO`, e a nova tentativa batia num 409 sem explicação.
+  Corrigido com o prop `aoFalhaAmbigua`, que aciona o `precisaAtualizar` do componente pai — o
+  mesmo mecanismo que `alterarComConfirmacao` já usava para esta classe de erro desde a gestão
+  admin de pedidos. Era o padrão da casa; só não tinha sido ligado no caminho novo. Lição
+  registrada: **componente filho novo que faz escrita precisa herdar o tratamento de resposta
+  perdida do pai, não inventar um `erro` local**.
+- **Botão "Marcar como pago manualmente" contornava o módulo de pagamento inteiro.** Removido
+  daqui e do backend por decisão do proprietário. O tipo `SituacaoAlteravel` (`Exclude<..., 'PENDENTE'
+  | 'PAGO'>`) existe para o compilador recusar a volta do botão por engano. Os 5 testes de
+  `gestao-de-pedidos.test.tsx` que exercitavam essa ação foram reescritos sobre `PAGO→ENVIADO`,
+  que é a escrita admin que sobrou, mais um teste novo que afirma a ausência do botão.
+
+**Cobertura de pagamento na Fase Final (2026-09-10):** 4 testes novos em
+`gestao-de-pedidos.test.tsx` (`describe('Pagamento')`) cobrindo recusa (formulário permanece),
+aprovação (recarrega e some), e as duas formas de falha ambígua — o POST rejeitando e o GET
+seguinte rejeitando depois de um pagamento aprovado. Esse último cenário é justamente o que um
+clique real **não** consegue reproduzir (perder a resposta de propósito), então é onde o teste
+automatizado vale mais que a verificação manual. Os quatro foram confirmados quebrando
+`aoFalhaAmbigua` de propósito. Total do frontend: 45 testes.
+
+**Armadilha ao escrever esses testes:** `mockResolvedValueOnce` **não funciona** para "primeira
+carga X, recargas Y" nesta suíte — o `StrictMode` monta duas vezes, e a segunda montagem consome o
+`Once`, fazendo a tela cair no estado de erro de carga. Usar `mockImplementation` com um sinalizador
+(`pagou`) que muda quando a escrita acontece, em vez de contar chamadas.
+
+**Nota de tester, não de bug:** durante o clique real, o primeiro cadastro de endereço "falhou"
+silenciosamente (voltou para a lista vazia sem erro). Investigado como possível bug (logs do
+backend, `GET /addresses` direto por curl) antes de perceber que a causa era preenchimento
+incompleto do formulário (campos `required` de HTML vazios) — a validação nativa do navegador
+bloqueou o `POST` antes mesmo de sair do cliente. Refeito com todos os campos preenchidos, sucesso
+imediato. Registrado aqui só para não ser confundido com bug real numa releitura futura.
+
 ## Remoção de testes durante a auditoria de 2026-09 (histórico — parcialmente revertido acima)
 
 Decisão do proprietário: reduzir o volume do código-fonte, mesmo motivo já registrado no backend.
@@ -501,6 +578,11 @@ O detalhe existente agora recebe `contexto="admin"` na rota administrativa. ADMI
 como pago e cancela pendente/pago; cliente mantém apenas cancelamento de pendente. Cancelado é
 terminal. As confirmações deixam claro: marcar pago é registro manual, sem cobrança; cancelamento
 devolve estoque, mas não executa reembolso financeiro. O servidor continua autorizando as operações.
+
+> **Desatualizado desde 2026-09-10:** a marcação manual de pago (`PENDENTE→PAGO` por ADMIN) foi
+> removida do frontend e do backend quando a revisão adversarial mostrou que ela contornava o
+> módulo de pagamento inteiro. Hoje o ADMIN só cancela e executa os passos de logística. Ver a
+> seção de pagamento acima.
 
 Cada pedido tem uma instância de conteúdo identificada por contexto/id, e cada consulta de lista
 tem uma instância identificada por página/situação. Leituras têm AbortController e descarte após

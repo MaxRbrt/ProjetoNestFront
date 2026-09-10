@@ -37,7 +37,10 @@ interface LinhaDoCarrinho {
 // entre tentativas — se a resposta do checkout se perder na rede, o retry
 // manual do usuário reenvia a mesma chave em vez de criar um pedido
 // duplicado; só um carrinho realmente diferente (efeito com [itens] como
-// dependência) gera uma chave nova.
+// dependência) gera uma chave nova. Trocar o endereço ou a modalidade de
+// frete também invalida a chave: é uma decisão nova sobre o pedido, não um
+// retry de rede, e a chave antiga faria o backend recusar o reenvio como
+// conflito de payload — ele inclui os dois campos no hash de conferência.
 // ---------------------------------------------
 export function TelaDeCarrinho({ cliente }: PropsDaTela) {
   const { itens, atualizarQuantidade, removerItem, limpar } = useCarrinho();
@@ -142,10 +145,6 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cliente, enderecoSelecionadoId, itens]);
 
-  // Trocar o endereço ou a modalidade de frete é uma decisão nova sobre o
-  // pedido, não um retry de rede: gerar outra chave evita que o backend
-  // recuse o reenvio como conflito de payload (a chave antiga já reflete a
-  // escolha anterior — o backend inclui os dois no hash de conferência).
   useEffect(() => {
     chaveDeIdempotenciaRef.current = null;
   }, [enderecoSelecionadoId, modalidadeSelecionada]);

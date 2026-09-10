@@ -36,9 +36,13 @@ describe('reaisParaCentavos', () => {
   });
 });
 
+// ---------------------------------------------
+// Formatação de moeda
+// O replace troca o espaço não separável que o Intl coloca entre símbolo e
+// número por um espaço comum, para a asserção continuar legível.
+// ---------------------------------------------
 describe('formatarCentavos', () => {
   it('formata centavos como moeda brasileira', () => {
-    // espaço não separável entre símbolo e número, como o Intl produz
     expect(formatarCentavos(1990).replace(/ /g, ' ')).toBe('R$ 19,90');
     expect(formatarCentavos(0).replace(/ /g, ' ')).toBe('R$ 0,00');
     expect(formatarCentavos(100000).replace(/ /g, ' ')).toBe('R$ 1.000,00');
@@ -57,7 +61,6 @@ describe('ida e volta', () => {
   });
 
   it('somar centavos não acumula erro, que é o motivo da mudança', () => {
-    // três itens de dez centavos: em float dava 0.30000000000000004
     const somaEmCentavos = 10 + 10 + 10;
     expect(somaEmCentavos).toBe(30);
     expect(0.1 + 0.1 + 0.1).not.toBe(0.3); // o comportamento que ficou para trás

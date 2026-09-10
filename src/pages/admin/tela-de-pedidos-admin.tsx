@@ -17,6 +17,8 @@ const SITUACOES: Record<SituacaoDoPedido, string> = {
   PENDENTE: 'Pendente',
   PAGO: 'Pago',
   CANCELADO: 'Cancelado',
+  ENVIADO: 'Enviado',
+  ENTREGUE: 'Entregue',
 };
 const FORMATADOR_DE_DATA = new Intl.DateTimeFormat('pt-BR', {
   dateStyle: 'short',
@@ -33,7 +35,11 @@ export function TelaDePedidosAdmin({ cliente }: { cliente: ApiClient }) {
   const [consulta, setConsulta] = useSearchParams();
   const valor = consulta.get('situacao');
   const situacao =
-    valor === 'PENDENTE' || valor === 'PAGO' || valor === 'CANCELADO'
+    valor === 'PENDENTE' ||
+    valor === 'PAGO' ||
+    valor === 'CANCELADO' ||
+    valor === 'ENVIADO' ||
+    valor === 'ENTREGUE'
       ? valor
       : undefined;
   const numero = Number(consulta.get('pagina') ?? 1);

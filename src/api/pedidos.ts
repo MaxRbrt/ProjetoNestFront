@@ -10,7 +10,12 @@ export interface ItemDoPedido {
   precoUnitarioEmCentavos: number;
 }
 
-export type SituacaoDoPedido = 'PENDENTE' | 'PAGO' | 'CANCELADO';
+export type SituacaoDoPedido =
+  | 'PENDENTE'
+  | 'PAGO'
+  | 'CANCELADO'
+  | 'ENVIADO'
+  | 'ENTREGUE';
 
 export interface Pedido {
   id: number;
