@@ -4,3 +4,16 @@
   gap: var(--espaco-4);
   max-width: 28rem;
 }
+
+.admin-form__imagem-atual {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-4);
+}
+
+.admin-form__imagem {
+  max-width: 8rem;
+  max-height: 8rem;
+  object-fit: contain;
+  border-radius: var(--raio, 0.25rem);
+}
