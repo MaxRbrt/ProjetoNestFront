@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { ApiClient } from '../../api/cliente';
 import { ApiError } from '../../api/cliente';
-import { buscarProduto } from '../../api/produtos';
+import { buscarProduto, urlDaImagemDoProduto } from '../../api/produtos';
 import type { Produto } from '../../api/produtos';
 import { criarPedido } from '../../api/pedidos';
 import { listarEnderecos, type Endereco } from '../../api/enderecos';
@@ -263,7 +263,18 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
               <tbody>
                 {linhas.map((linha) => (
                   <tr key={linha.produto.id}>
-                    <td>{linha.produto.nome}</td>
+                    <td>
+                      <span className="carrinho__produto">
+                        {urlDaImagemDoProduto(linha.produto) ? (
+                          <img
+                            className="carrinho__miniatura"
+                            src={urlDaImagemDoProduto(linha.produto)!}
+                            alt=""
+                          />
+                        ) : null}
+                        {linha.produto.nome}
+                      </span>
+                    </td>
                     <td>{formatarCentavos(linha.produto.precoEmCentavos)}</td>
                     <td>
                       <input

@@ -29,6 +29,21 @@
   width: 4rem;
 }
 
+.carrinho__produto {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-3);
+}
+
+.carrinho__miniatura {
+  width: 3rem;
+  height: 3rem;
+  object-fit: cover;
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie-sutil);
+  flex-shrink: 0;
+}
+
 .tela-carrinho__subtotal {
   color: var(--cor-tinta-media);
   margin-bottom: var(--espaco-4);
