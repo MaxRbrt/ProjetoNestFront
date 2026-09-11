@@ -8,6 +8,7 @@ import { NavPrincipal } from '../../components/nav-principal';
 import { Cabecalho } from '../../components/cabecalho';
 import { Botao, Campo } from '../../components/primitivos';
 import { useProduto } from '../../hooks/use-produto';
+import { urlDaImagemDoProduto } from '../../api/produtos';
 import './tela-de-detalhe-do-produto.css';
 
 interface PropsDaTela {
@@ -78,9 +79,17 @@ export function TelaDeDetalheDoProduto({ cliente }: PropsDaTela) {
               reduzirMovimento ? undefined : `produto-${produto.id}`
             }
           >
-            <div className="detalhe-produto__imagem" aria-hidden="true">
-              {produto.nome.charAt(0).toUpperCase()}
-            </div>
+            {urlDaImagemDoProduto(produto) ? (
+              <img
+                className="detalhe-produto__imagem"
+                src={urlDaImagemDoProduto(produto)!}
+                alt=""
+              />
+            ) : (
+              <div className="detalhe-produto__imagem" aria-hidden="true">
+                {produto.nome.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div className="detalhe-produto__corpo">
               <h1 className="detalhe-produto__nome">{produto.nome}</h1>
               <p className="detalhe-produto__preco">

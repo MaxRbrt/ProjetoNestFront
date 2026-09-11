@@ -2,6 +2,7 @@ import { formatarCentavos } from '../../utils/dinheiro';
 import { motion, useReducedMotion } from 'motion/react';
 import { Link, useLocation } from 'react-router-dom';
 import type { Produto } from '../../api/produtos';
+import { urlDaImagemDoProduto } from '../../api/produtos';
 import { cartaoInterativo } from '../../motion/tokens';
 import './cartao-de-produto.css';
 
@@ -32,9 +33,18 @@ export function CartaoDeProduto({ produto }: PropsDoCartao) {
         initial="repouso"
         whileHover={reduzirMovimento ? 'repouso' : 'apontado'}
       >
-        <div className="cartao-produto__imagem" aria-hidden="true">
-          {produto.nome.charAt(0).toUpperCase()}
-        </div>
+        {urlDaImagemDoProduto(produto) ? (
+          <img
+            className="cartao-produto__imagem"
+            src={urlDaImagemDoProduto(produto)!}
+            alt=""
+            loading="lazy"
+          />
+        ) : (
+          <div className="cartao-produto__imagem" aria-hidden="true">
+            {produto.nome.charAt(0).toUpperCase()}
+          </div>
+        )}
         <div className="cartao-produto__corpo">
           <h3 className="cartao-produto__nome">{produto.nome}</h3>
           <p className="cartao-produto__preco">
