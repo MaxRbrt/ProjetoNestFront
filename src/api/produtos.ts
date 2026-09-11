@@ -1,4 +1,5 @@
 import type { ApiClient } from './cliente';
+import { baseDaApi } from './cliente';
 
 export interface Produto {
   id: number;
@@ -6,6 +7,23 @@ export interface Produto {
   precoEmCentavos: number;
   estoque: number;
   categoriaId: number;
+  nomeDoArquivoDaImagem: string | null;
+}
+
+// ---------------------------------------------
+// URL da imagem do produto
+// O nome do arquivo entra como parâmetro de versão, não porque o servidor
+// precise dele — a rota já resolve a imagem pelo id — mas porque a URL sem
+// ele seria estável: trocar a foto não mudaria o endereço, e o navegador
+// continuaria exibindo a antiga do cache. Trocar a foto muda o UUID, que
+// muda a URL, que invalida o cache sem depender de cabeçalho.
+// A base é importada normalizada de cliente.ts: única leitura da variável.
+// ---------------------------------------------
+export function urlDaImagemDoProduto(produto: Produto): string | null {
+  if (!produto.nomeDoArquivoDaImagem) {
+    return null;
+  }
+  return `${baseDaApi}/products/${produto.id}/image?v=${produto.nomeDoArquivoDaImagem}`;
 }
 
 export interface Categoria {

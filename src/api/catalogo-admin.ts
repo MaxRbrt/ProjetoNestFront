@@ -66,3 +66,20 @@ export function removerCategoria(
 ): Promise<void> {
   return cliente.delete<void>(`/categories/${id}`);
 }
+
+export function enviarImagemDoProduto(
+  cliente: ApiClient,
+  id: number,
+  arquivo: File,
+): Promise<Produto> {
+  const dados = new FormData();
+  dados.append('imagem', arquivo);
+  return cliente.post<Produto>(`/products/${id}/image`, dados);
+}
+
+export function removerImagemDoProduto(
+  cliente: ApiClient,
+  id: number,
+): Promise<Produto> {
+  return cliente.delete<Produto>(`/products/${id}/image`);
+}
