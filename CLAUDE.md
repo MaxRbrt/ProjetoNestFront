@@ -11,22 +11,22 @@ neste mesmo diretório pai.
 ## Estado atual
 
 Fundação, autenticação, vitrine, painel administrativo, fluxo de compra do cliente e pagamento
-simulado com ciclo de entrega prontos. Última atualização: 2026-09-10.
+simulado com ciclo de entrega prontos. Última atualização: 2026-09-11.
 
 | Área | Estado |
 |---|---|
-| Cliente HTTP | Token em memória, fila de refresh, tratamento de erro da API |
+| Cliente HTTP | Token em memória, fila de refresh, tratamento de erro da API e `FormData` multipart |
 | Sessão | Três estados (verificando/autenticado/anônimo), recuperação por cookie, rota protegida e rota restrita a ADMIN |
 | Telas | Login, cadastro, verificação de email, reenvio de verificação, recuperação de senha (esqueci/redefinir), inicial autenticada, vitrine, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias, carrinho, meus pedidos, detalhe de pedido (com pagamento), meus endereços |
 | Pagamento | Completo — formulário de cartão simulado no detalhe do pedido (`PENDENTE`), aprovação/recusa com retry, `PAGO`→`ENVIADO`→`ENTREGUE` só via ADMIN — 2026-09-10 |
 | Sistema visual | Tokens de cor, tipografia e motion; primitivos de botão, campo e aviso; subnavegação administrativa |
-| Vitrine | Completa — busca/categoria/página na URL, debounce, cancelamento, retry, estados de carregamento/vazio/erro e detalhe com retorno ao filtro |
+| Vitrine | Completa — busca/categoria/página na URL, debounce, cancelamento, retry, estados de carregamento/vazio/erro, detalhe com retorno ao filtro e imagem de produto versionada |
 | Painel Admin | Completo — métricas, CRUD de catálogo e gestão de pedidos com filtro por situação, paginação na URL, detalhe, cancelamento e passos de logística (enviado/entregue). Sem confirmação manual de pagamento: removida em 2026-09-10, ver seção de pagamento |
 | Carrinho, pedidos | Completo — carrinho persistido em `localStorage` limpo no logout, adicionar com teto de estoque, checkout com `Idempotency-Key` estável entre retries, seleção de endereço e de frete, "meus pedidos" paginado, detalhe com endereço/frete congelados e cancelamento (`PENDENTE`→`CANCELADO`) — ver seção própria abaixo |
 | Endereços | Completo — listar/criar/editar/remover, marcar principal, seleção no checkout — 2026-09-09 |
 | Frete | Completo — cotação PAC/SEDEX no checkout com custo e prazo, total atualiza ao trocar modalidade — 2026-09-09 |
 | Dinheiro | **Centavos inteiros.** A API fala em `precoEmCentavos`/`totalEmCentavos`/`precoUnitarioEmCentavos`; conversão para exibição e para envio vive só em `src/utils/dinheiro.ts` |
-| Testes | 45 testes (`npm test`) — `ApiClient` (fila de refresh), `ProvedorDoCarrinho`, `dinheiro.ts`, gestão admin de pedidos, pagamento (incl. falha ambígua) |
+| Testes | 50 testes (`npm test`) — `ApiClient` (fila de refresh e FormData), `ProvedorDoCarrinho`, `dinheiro.ts`, catálogo com imagem, gestão admin de pedidos e pagamento |
 
 ## O contrato de autenticação define a arquitetura
 
@@ -555,6 +555,26 @@ cancelamento ou StrictMode agora depende de verificação manual.
 
 Nenhum comando `git` ou `gh` pode ser executado pela sessão, nem de leitura. Os comandos de commit
 são entregues ao proprietário, em lotes de ~3 arquivos.
+
+## Imagem de produto — 2026-09-11
+
+O contrato de produto inclui `nomeDoArquivoDaImagem`. Quando ele existe, vitrine, detalhe e carrinho
+usam `/products/:id/image?v=<nome>`; trocar a foto muda o UUID e invalida o cache sem depender de
+reduzir o `max-age`. `alt=""` é intencional, pois o nome já aparece como texto na mesma tela e a
+foto é ilustrativa. A vitrine e o carrinho usam `cover`; o detalhe também mantém `cover`, decisão do
+proprietário mesmo com possível corte em fotos quadradas no bloco largo de 14rem.
+
+`ApiClient` reconhece `FormData`, não o serializa e não define `Content-Type`: o navegador cria o
+boundary. O mesmo corpo é preservado quando uma resposta 401 exige renovação e reenvio. `baseDaApi`
+é lida e normalizada uma vez em `cliente.ts`, usada também na URL direta da imagem.
+
+No formulário administrativo, criar com arquivo é uma operação em dois passos. Se a criação
+confirmar e o upload falhar, a navegação usa `replace` para a edição do produto recém-criado; ficar
+em criação permitiria duplicá-lo no próximo Salvar. O aviso em `location.state` é consumido uma vez.
+Os testes não usam `mockResolvedValueOnce` para carregamentos sob StrictMode; jsdom não implementa
+`URL.createObjectURL` e normaliza `10,00` em campos `number`, por isso ambos são tratados no setup.
+
+Validação final: 50 testes, `tsc -b` e build de produção limpos.
 
 ## Comandos
 
