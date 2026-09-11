@@ -40,10 +40,12 @@ const SESSAO_RENOVADA = {
 describe('ApiClient — fila de renovação', () => {
   function criarCliente(opcoes: { falharRenovacao?: boolean } = {}) {
     const chamadas: string[] = [];
+    const requisicoes: Array<{ url: string; opcoes: RequestInit }> = [];
     let tokenValido = false;
 
-    const fetchFalso = ((url: string): Promise<Response> => {
+    const fetchFalso = ((url: string, opcoesDaChamada: RequestInit = {}): Promise<Response> => {
       chamadas.push(url);
+      requisicoes.push({ url, opcoes: opcoesDaChamada });
 
       if (url.endsWith('/auth/refresh')) {
         if (opcoes.falharRenovacao) {
@@ -66,7 +68,7 @@ describe('ApiClient — fila de renovação', () => {
       canalDeSessao: `teste-${Math.random()}`,
     });
 
-    return { cliente, chamadas };
+    return { cliente, chamadas, requisicoes };
   }
 
   it('cinco requisições simultâneas com 401 disparam UMA única renovação', async () => {
@@ -129,5 +131,27 @@ describe('ApiClient — fila de renovação', () => {
 
     const renovacoes = chamadas.filter((url) => url.endsWith('/auth/refresh'));
     expect(renovacoes).toHaveLength(0);
+  });
+
+  // ---------------------------------------------
+  // Corpo em FormData
+  // O navegador precisa definir o Content-Type do multipart sozinho, porque
+  // só ele conhece o boundary gerado. Definir 'application/json' aqui, ou
+  // passar o corpo por JSON.stringify, transforma o upload em texto "[object
+  // FormData]" — o servidor recebe um corpo vazio e nada acusa o motivo. O
+  // fetchFalso responde 401 até a renovação acontecer, então a asserção olha
+  // a ÚLTIMA requisição (o reenvio pós-renovação) para provar que o mesmo
+  // FormData sobrevive ao reenvio.
+  // ---------------------------------------------
+  it('envia FormData sem serializar e sem definir Content-Type', async () => {
+    const { cliente, requisicoes } = criarCliente();
+    const dados = new FormData();
+    dados.append('imagem', new Blob([new Uint8Array([1, 2, 3])]), 'foto.png');
+
+    await cliente.post('/products/1/image', dados);
+
+    const opcoes = requisicoes.at(-1)!.opcoes;
+    expect(opcoes.body).toBe(dados);
+    expect((opcoes.headers as Record<string, string>)['Content-Type']).toBeUndefined();
   });
 });

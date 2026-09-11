@@ -1,6 +1,4 @@
-import { ApiClient } from './cliente';
-
-const baseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+import { ApiClient, baseDaApi } from './cliente';
 
 // ---------------------------------------------
 // Instância única do cliente
@@ -8,4 +6,4 @@ const baseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 // memória e serializa a renovação. Duas instâncias teriam tokens distintos e
 // disputariam o refresh rotativo, derrubando a sessão.
 // ---------------------------------------------
-export const apiClient = new ApiClient({ baseUrl });
+export const apiClient = new ApiClient({ baseUrl: baseDaApi });

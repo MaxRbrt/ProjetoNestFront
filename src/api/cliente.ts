@@ -308,17 +308,27 @@ export class ApiClient {
     return this.interpretar<T>(respostaRefeita);
   }
 
+  // ---------------------------------------------
+  // Corpo em FormData não é serializado
+  // Upload de arquivo (imagem de produto) precisa de multipart/form-data com
+  // um boundary gerado pelo próprio navegador — só ele conhece o valor. Forçar
+  // 'application/json' aqui, ou passar o FormData por JSON.stringify,
+  // transforma o corpo em texto "[object FormData]" e o servidor recebe um
+  // corpo vazio sem nenhum erro que aponte o motivo.
+  // ---------------------------------------------
   private enviar(
     caminho: string,
     opcoes: OpcoesDaRequisicao,
     token: string | null,
   ): Promise<Response> {
     const cabecalhos: Record<string, string> = { ...opcoes.cabecalhos };
+    const ehFormData =
+      typeof FormData !== 'undefined' && opcoes.corpo instanceof FormData;
 
     if (token) {
       cabecalhos.Authorization = `Bearer ${token}`;
     }
-    if (opcoes.corpo !== undefined) {
+    if (opcoes.corpo !== undefined && !ehFormData) {
       cabecalhos['Content-Type'] = 'application/json';
     }
 
@@ -328,7 +338,11 @@ export class ApiClient {
       headers: cabecalhos,
       signal: opcoes.signal,
       body:
-        opcoes.corpo === undefined ? undefined : JSON.stringify(opcoes.corpo),
+        opcoes.corpo === undefined
+          ? undefined
+          : ehFormData
+            ? (opcoes.corpo as FormData)
+            : JSON.stringify(opcoes.corpo),
     });
   }
 
@@ -397,3 +411,15 @@ export class ApiClient {
     this.ouvintes.clear();
   }
 }
+
+// ---------------------------------------------
+// Base da API — única leitura da variável de ambiente
+// Normalizada aqui (barra final removida) porque outras partes do código —
+// especialmente urlDaImagemDoProduto — usam a base sem passar pelo ApiClient.
+// O src de <img> é buscado diretamente pelo navegador, não herda a normalização
+// do cliente. Exportar a base já normalizada garante coerência: não há URL
+// com barra dupla em qualquer contexto.
+// ---------------------------------------------
+export const baseDaApi = (
+  import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+).replace(/\/$/, '');
