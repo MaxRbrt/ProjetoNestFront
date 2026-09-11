@@ -34,9 +34,12 @@ no CORS.
   `httpOnly` no carregamento, rota protegida.
 - **Vitrine de produtos** — busca com debounce, filtro por categoria, paginação, todos
   sincronizados na URL; cancelamento de requisição obsoleta; estados de carregamento, vazio e erro;
-  detalhe de produto com retorno preservando o filtro.
+  detalhe de produto com retorno preservando o filtro e imagem opcional.
+- **Compra** — carrinho persistido por usuário, endereços de entrega, cotação de frete, pedido
+  idempotente, pagamentos simulados e histórico/detalhe de pedidos.
+- **Administração** — CRUD de produtos, categorias e imagens, além de acompanhamento e transição
+  de pedidos.
 
-Carrinho e pedidos: não iniciados.
 
 ## Arquitetura de autenticação (por que é assim)
 
@@ -65,18 +68,19 @@ precisa cancelar o temporizador e não só o fetch) estão documentados em `CLAU
 
 ```
 src/
-├─ api/          cliente HTTP (fila de refresh), tipos do contrato
-├─ auth/         sessão, rota protegida
-├─ components/   primitivos (Botao, Campo, Aviso, Header)
-├─ hooks/        dados da vitrine (useProducts, useProduct, useCategories)
-├─ motion/       tokens de duração/curva e variantes reutilizáveis
-├─ pages/        telas (auth, vitrine, detalhe de produto)
+├─ api/          cliente HTTP e contratos da API
+├─ auth/         sessão e rotas protegidas
+├─ carrinho/     estado persistido por identidade
+├─ components/   primitivos de interface
+├─ hooks/        dados da vitrine
+├─ motion/       tokens e variantes reutilizáveis
+├─ pages/        telas públicas, compra e administração
 └─ styles/       tokens de design
 ```
 
 ## Testes
 
-72 testes (Vitest + Testing Library). Cobrem lógica com risco real — fila de refresh sob
+Os testes Vitest + Testing Library cobrem lógica com risco real — fila de refresh sob
 concorrência, StrictMode, debounce/cancelamento, ownership de sessão — não aparência: layout e
 animação se verificam olhando.
 
