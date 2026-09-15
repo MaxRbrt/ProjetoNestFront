@@ -4,8 +4,6 @@ import { motion, useReducedMotion } from 'motion/react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { ApiClient } from '../../api/cliente';
 import { useCarrinho } from '../../auth/contexto-do-carrinho';
-import { NavPrincipal } from '../../components/nav-principal';
-import { Cabecalho } from '../../components/cabecalho';
 import { Botao, Campo } from '../../components/primitivos';
 import { useProduto } from '../../hooks/use-produto';
 import { urlDaImagemDoProduto } from '../../api/produtos';
@@ -48,87 +46,81 @@ export function TelaDeDetalheDoProduto({ cliente }: PropsDaTela) {
   }
 
   return (
-    <>
-      <Cabecalho links={<NavPrincipal />} />
+    <section className="detalhe-produto">
+      <button
+        className="detalhe-produto__voltar"
+        type="button"
+        onClick={() => navegar(retorno)}
+      >
+        ← Voltar para produtos
+      </button>
 
-      <main className="detalhe-produto">
-        <button
-          className="detalhe-produto__voltar"
-          type="button"
-          onClick={() => navegar(retorno)}
+      {erro ? (
+        <p className="detalhe-produto__erro" role="alert">
+          {erro}
+        </p>
+      ) : null}
+
+      {!erro && carregando ? (
+        <p className="detalhe-produto__carregando" role="status">
+          Carregando produto…
+        </p>
+      ) : null}
+
+      {!erro && produto ? (
+        <motion.article
+          className="detalhe-produto__cartao"
+          layoutId={reduzirMovimento ? undefined : `produto-${produto.id}`}
         >
-          ← Voltar para produtos
-        </button>
-
-        {erro ? (
-          <p className="detalhe-produto__erro" role="alert">
-            {erro}
-          </p>
-        ) : null}
-
-        {!erro && carregando ? (
-          <p className="detalhe-produto__carregando" role="status">
-            Carregando produto…
-          </p>
-        ) : null}
-
-        {!erro && produto ? (
-          <motion.article
-            className="detalhe-produto__cartao"
-            layoutId={
-              reduzirMovimento ? undefined : `produto-${produto.id}`
-            }
-          >
-            {urlDaImagemDoProduto(produto) ? (
-              <img
-                className="detalhe-produto__imagem"
-                src={urlDaImagemDoProduto(produto)!}
-                alt=""
-              />
-            ) : (
-              <div className="detalhe-produto__imagem" aria-hidden="true">
-                {produto.nome.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div className="detalhe-produto__corpo">
-              <h1 className="detalhe-produto__nome">{produto.nome}</h1>
-              <p className="detalhe-produto__preco">
-                {formatarCentavos(produto.precoEmCentavos)}
-              </p>
-              <p className="detalhe-produto__estoque">
-                {produto.estoque > 0
-                  ? `${produto.estoque} unidades em estoque`
-                  : 'Produto esgotado'}
-              </p>
-
-              {produto.estoque > 0 ? (
-                <div className="detalhe-produto__acao">
-                  <Campo
-                    rotulo="Quantidade"
-                    type="number"
-                    min={1}
-                    max={produto.estoque}
-                    value={quantidade}
-                    onChange={(evento) => {
-                      const valor = Number(evento.target.value);
-                      setQuantidade(
-                        Number.isInteger(valor)
-                          ? Math.min(Math.max(valor, 1), produto.estoque)
-                          : 1,
-                      );
-                    }}
-                  />
-                  <Botao onClick={aoAdicionar}>
-                    {adicionado ? 'Adicionado ✓' : 'Adicionar ao carrinho'}
-                  </Botao>
-                </div>
-              ) : (
-                <Botao disabled>Produto esgotado</Botao>
-              )}
+          {urlDaImagemDoProduto(produto) ? (
+            <img
+              className="detalhe-produto__imagem"
+              src={urlDaImagemDoProduto(produto)!}
+              alt=""
+            />
+          ) : (
+            <div className="detalhe-produto__imagem" aria-hidden="true">
+              {produto.nome.charAt(0).toUpperCase()}
             </div>
-          </motion.article>
-        ) : null}
-      </main>
-    </>
+          )}
+          <div className="detalhe-produto__corpo">
+            <h1 className="detalhe-produto__nome">{produto.nome}</h1>
+            <p className="detalhe-produto__preco">
+              {formatarCentavos(produto.precoEmCentavos)}
+            </p>
+            <p className="detalhe-produto__estoque">
+              {produto.estoque > 0
+                ? `${produto.estoque} unidades em estoque`
+                : 'Produto esgotado'}
+            </p>
+
+            {produto.estoque > 0 ? (
+              <div className="detalhe-produto__acao">
+                <Campo
+                  rotulo="Quantidade"
+                  type="number"
+                  min={1}
+                  max={produto.estoque}
+                  value={quantidade}
+                  onChange={(evento) => {
+                    const valor = Number(evento.target.value);
+                    setQuantidade(
+                      Number.isInteger(valor)
+                        ? Math.min(Math.max(valor, 1), produto.estoque)
+                        : 1,
+                    );
+                  }}
+                />
+                <Botao onClick={aoAdicionar}>
+                  {adicionado ? 'Adicionado ✓' : 'Adicionar ao carrinho'}
+                </Botao>
+              </div>
+            ) : (
+              <Botao disabled>Produto esgotado</Botao>
+            )}
+          </div>
+        </motion.article>
+      ) : null}
+    </section>
   );
 }

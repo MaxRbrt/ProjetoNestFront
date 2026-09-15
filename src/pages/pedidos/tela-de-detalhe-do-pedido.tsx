@@ -6,9 +6,12 @@ import { ApiError } from '../../api/cliente';
 import { atualizarSituacaoDoPedido, buscarPedido } from '../../api/pedidos';
 import type { Pedido, SituacaoDoPedido } from '../../api/pedidos';
 import { iniciarPagamento } from '../../api/pagamentos';
-import { Cabecalho } from '../../components/cabecalho';
-import { NavPrincipal } from '../../components/nav-principal';
-import { Aviso, Botao, Campo } from '../../components/primitivos';
+import {
+  Aviso,
+  BadgeDeSituacao,
+  Botao,
+  Campo,
+} from '../../components/primitivos';
 import './tela-de-detalhe-do-pedido.css';
 
 interface PropsDaTela {
@@ -53,31 +56,27 @@ export function TelaDeDetalheDoPedido({
   const id = Number(parametros.id);
   const retorno =
     contexto === 'admin' ? `/admin/pedidos${local.search}` : '/pedidos';
-  const Conteiner = contexto === 'admin' ? 'section' : 'main';
 
   return (
-    <>
-      {contexto === 'cliente' ? <Cabecalho links={<NavPrincipal />} /> : null}
-      <Conteiner
-        className={`detalhe-pedido${contexto === 'admin' ? ' detalhe-pedido--admin' : ''}`}
-      >
-        <Link to={retorno} className="detalhe-pedido__voltar">
-          {contexto === 'admin'
-            ? '← Voltar para pedidos'
-            : '← Voltar para meus pedidos'}
-        </Link>
-        {Number.isInteger(id) && id > 0 && id <= 2147483647 ? (
-          <ConteudoDoPedido
-            key={`${contexto}:${id}`}
-            cliente={cliente}
-            contexto={contexto}
-            id={id}
-          />
-        ) : (
-          <Aviso>Identificador de pedido inválido.</Aviso>
-        )}
-      </Conteiner>
-    </>
+    <section
+      className={`detalhe-pedido${contexto === 'admin' ? ' detalhe-pedido--admin' : ''}`}
+    >
+      <Link to={retorno} className="detalhe-pedido__voltar">
+        {contexto === 'admin'
+          ? '← Voltar para pedidos'
+          : '← Voltar para meus pedidos'}
+      </Link>
+      {Number.isInteger(id) && id > 0 && id <= 2147483647 ? (
+        <ConteudoDoPedido
+          key={`${contexto}:${id}`}
+          cliente={cliente}
+          contexto={contexto}
+          id={id}
+        />
+      ) : (
+        <Aviso>Identificador de pedido inválido.</Aviso>
+      )}
+    </section>
   );
 }
 
@@ -210,7 +209,10 @@ function ConteudoDoPedido({
           <h1>Pedido #{pedido.id}</h1>
           <p className="detalhe-pedido__meta">
             {FORMATADOR_DE_DATA.format(new Date(pedido.criadoEm))} ·{' '}
-            {ROTULO_DA_SITUACAO[pedido.situacao] ?? pedido.situacao}
+            <BadgeDeSituacao
+              situacao={pedido.situacao}
+              rotulo={ROTULO_DA_SITUACAO[pedido.situacao] ?? pedido.situacao}
+            />
           </p>
 
           <div className="detalhe-pedido__endereco">
@@ -266,8 +268,8 @@ function ConteudoDoPedido({
             </div>
             <div>
               <dt>
-                Frete ({pedido.modalidadeDeFrete}, até{' '}
-                {pedido.prazoEmDiasUteis} dias úteis)
+                Frete ({pedido.modalidadeDeFrete}, até {pedido.prazoEmDiasUteis}{' '}
+                dias úteis)
               </dt>
               <dd>{formatarCentavos(pedido.freteEmCentavos)}</dd>
             </div>
@@ -302,7 +304,9 @@ function ConteudoDoPedido({
                 carregando={acaoEmCurso === 'ENVIADO'}
                 onClick={() => void alterarComConfirmacao('ENVIADO')}
               >
-                {acaoEmCurso === 'ENVIADO' ? 'Marcando…' : 'Marcar como enviado'}
+                {acaoEmCurso === 'ENVIADO'
+                  ? 'Marcando…'
+                  : 'Marcar como enviado'}
               </Botao>
             ) : null}
             {contexto === 'admin' && pedido.situacao === 'ENVIADO' ? (
@@ -311,7 +315,9 @@ function ConteudoDoPedido({
                 carregando={acaoEmCurso === 'ENTREGUE'}
                 onClick={() => void alterarComConfirmacao('ENTREGUE')}
               >
-                {acaoEmCurso === 'ENTREGUE' ? 'Marcando…' : 'Marcar como entregue'}
+                {acaoEmCurso === 'ENTREGUE'
+                  ? 'Marcando…'
+                  : 'Marcar como entregue'}
               </Botao>
             ) : null}
             {pedido.situacao === 'PENDENTE' ||
@@ -373,7 +379,11 @@ function FormularioDePagamento({
     setRecusado(null);
     setPagando(true);
     try {
-      const pagamento = await iniciarPagamento(cliente, pedidoId, numeroDoCartao);
+      const pagamento = await iniciarPagamento(
+        cliente,
+        pedidoId,
+        numeroDoCartao,
+      );
       if (pagamento.status === 'RECUSADO') {
         setRecusado(
           pagamento.motivoDeRecusa ?? 'Cartão recusado. Tente outro cartão.',
@@ -397,7 +407,10 @@ function FormularioDePagamento({
     <div className="detalhe-pedido__pagamento">
       <h2>Pagamento</h2>
       {recusado ? <Aviso>{recusado}</Aviso> : null}
-      <form onSubmit={aoEnviar} className="detalhe-pedido__formulario-pagamento">
+      <form
+        onSubmit={aoEnviar}
+        className="detalhe-pedido__formulario-pagamento"
+      >
         <Campo
           rotulo="Número do cartão"
           placeholder="0000000000000000"

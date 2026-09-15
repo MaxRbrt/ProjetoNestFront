@@ -1,3 +1,4 @@
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
@@ -14,7 +15,7 @@ import { defineConfig } from 'vitest/config';
 // removida na auditoria de 2026-09-04.
 // ---------------------------------------------
 export default defineConfig({
-  plugins: [react()],
+  plugins: [tailwindcss(), react()],
   server: {
     port: 3001,
     strictPort: true,

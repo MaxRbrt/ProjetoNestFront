@@ -29,7 +29,7 @@ export function useProdutos(
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [tentativa, setTentativa] = useState(0);
-  const { categoria, busca, pagina } = filtro;
+  const { categoria, busca, pagina, ordenarPor, direcao, limite } = filtro;
   const recarregar = useCallback(() => {
     setTentativa((atual) => atual + 1);
   }, []);
@@ -37,7 +37,14 @@ export function useProdutos(
   useEffect(() => {
     const controlador = new AbortController();
     let cancelado = false;
-    const filtroAtual = { categoria, busca, pagina };
+    const filtroAtual = {
+      categoria,
+      busca,
+      pagina,
+      ordenarPor,
+      direcao,
+      limite,
+    };
 
     setCarregando(true);
     setErro(null);
@@ -71,7 +78,16 @@ export function useProdutos(
       clearTimeout(temporizador);
       controlador.abort();
     };
-  }, [cliente, categoria, busca, pagina, tentativa]);
+  }, [
+    cliente,
+    categoria,
+    busca,
+    pagina,
+    ordenarPor,
+    direcao,
+    limite,
+    tentativa,
+  ]);
 
   return { produtos, carregando, erro, recarregar };
 }

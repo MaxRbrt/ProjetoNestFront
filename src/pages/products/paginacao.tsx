@@ -1,5 +1,4 @@
-import { Botao } from '../../components/primitivos';
-import './paginacao.css';
+import { Botao } from '../../ui/indice';
 
 interface PropsDaPaginacao {
   pagina: number;
@@ -23,19 +22,26 @@ export function Paginacao({
   }
 
   return (
-    <nav className="paginacao" aria-label={rotulo}>
+    <nav
+      className="mt-8 flex flex-wrap items-center justify-center gap-3"
+      aria-label={rotulo}
+    >
       <Botao
         variante="secundario"
+        tamanho="pequeno"
+        className="min-h-11 focus-visible:outline-acento lg:min-h-9"
         disabled={pagina <= 1}
         onClick={() => aoMudar(pagina - 1)}
       >
         Anterior
       </Botao>
-      <span className="paginacao__texto">
+      <span className="text-sm text-tinta-media">
         Página {pagina} de {totalDePaginas}
       </span>
       <Botao
         variante="secundario"
+        tamanho="pequeno"
+        className="min-h-11 focus-visible:outline-acento lg:min-h-9"
         disabled={pagina >= totalDePaginas}
         onClick={() => aoMudar(pagina + 1)}
       >

@@ -1,10 +1,17 @@
 import { MotionConfig } from 'motion/react';
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+} from 'react-router-dom';
 import { apiClient } from './api/instancia';
 import { RotaAdmin } from './auth/rota-admin';
 import { RotaProtegida } from './auth/rota-protegida';
 import { ProvedorDeSessao, useSessao } from './auth/contexto-de-sessao';
 import { ProvedorDoCarrinho } from './auth/contexto-do-carrinho';
+import { LayoutDaLoja } from './layout/layout-da-loja';
 import { TelaDeFormularioDeCategoriaAdmin } from './pages/admin/tela-de-formulario-de-categoria-admin';
 import { TelaDeCategoriasAdmin } from './pages/admin/tela-de-categorias-admin';
 import { TelaDeDashboardAdmin } from './pages/admin/tela-de-dashboard-admin';
@@ -97,66 +104,53 @@ function AreaProtegida() {
       />
 
       <Route element={<AreaComCarrinho />}>
-        <Route
-          path="/"
-          element={
-            <RotaProtegida>
-              <TelaInicial />
-            </RotaProtegida>
-          }
-        />
-        <Route
-          path="/produtos"
-          element={
-            <RotaProtegida>
-              <TelaDeProdutos cliente={apiClient} />
-            </RotaProtegida>
-          }
-        />
-        <Route
-          path="/produtos/:id"
-          element={
-            <RotaProtegida>
-              <TelaDeDetalheDoProduto cliente={apiClient} />
-            </RotaProtegida>
-          }
-        />
-        <Route
-          path="/carrinho"
-          element={
-            <RotaProtegida>
-              <TelaDeCarrinho cliente={apiClient} />
-            </RotaProtegida>
-          }
-        />
-        <Route
-          path="/pedidos"
-          element={
-            <RotaProtegida>
-              <TelaDeMeusPedidos cliente={apiClient} />
-            </RotaProtegida>
-          }
-        />
-        <Route
-          path="/enderecos"
-          element={
-            <RotaProtegida>
-              <TelaDeEnderecos cliente={apiClient} />
-            </RotaProtegida>
-          }
-        />
-        <Route
-          path="/pedidos/:id"
-          element={
-            <RotaProtegida>
-              <TelaDeDetalheDoPedido cliente={apiClient} />
-            </RotaProtegida>
-          }
-        />
+        <Route element={<LayoutDaLoja cliente={apiClient} />}>
+          <Route path="/" element={<TelaInicial />} />
+          <Route
+            path="/produtos"
+            element={<TelaDeProdutos cliente={apiClient} />}
+          />
+          <Route
+            path="/produtos/:id"
+            element={<TelaDeDetalheDoProduto cliente={apiClient} />}
+          />
+          <Route
+            path="/carrinho"
+            element={
+              <RotaProtegida>
+                <TelaDeCarrinho cliente={apiClient} />
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/pedidos"
+            element={
+              <RotaProtegida>
+                <TelaDeMeusPedidos cliente={apiClient} />
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/enderecos"
+            element={
+              <RotaProtegida>
+                <TelaDeEnderecos cliente={apiClient} />
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/pedidos/:id"
+            element={
+              <RotaProtegida>
+                <TelaDeDetalheDoPedido cliente={apiClient} />
+              </RotaProtegida>
+            }
+          />
+        </Route>
         <Route
           element={
             <RotaAdmin>
-              <LayoutAdmin />
+              <LayoutAdmin cliente={apiClient} />
             </RotaAdmin>
           }
         >

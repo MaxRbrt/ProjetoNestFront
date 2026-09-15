@@ -1,0 +1,49 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------
+   Tema da loja
+   Os valores vêm dos tokens que já definiam a identidade: navy de marca,
+   acento laranja quente, superfícies claras e cantos arredondados. O que
+   muda é a forma de consumo — utilitário do Tailwind em vez de classe por
+   tela — não a linguagem visual.
+   --------------------------------------------- */
+@theme {
+  --color-fundo: #f1f5f9;
+  --color-superficie: #ffffff;
+  --color-superficie-sutil: #f8fafc;
+
+  --color-tinta: #0f172a;
+  --color-tinta-media: #475569;
+  --color-tinta-suave: #64748b;
+
+  --color-borda: #e2e8f0;
+  --color-borda-forte: #cbd5e1;
+
+  --color-acento: #ea580c;
+  --color-acento-escuro: #c2410c;
+  --color-acento-suave: #fff7ed;
+
+  --color-marca: #10233f;
+  --color-marca-clara: #1e3a5f;
+
+  --color-sucesso: #16a34a;
+  --color-sucesso-suave: #f0fdf4;
+  --color-erro: #dc2626;
+  --color-erro-suave: #fef2f2;
+  --color-aviso: #ca8a04;
+
+  --radius-card: 10px;
+  --radius-grande: 16px;
+  --radius-pequeno: 6px;
+  --radius-pilula: 999px;
+
+  --shadow-carta: 0 1px 2px rgb(15 23 42 / 0.06);
+  --shadow-carta-media: 0 4px 12px rgb(15 23 42 / 0.08);
+  --shadow-carta-alta: 0 12px 24px rgb(15 23 42 / 0.12);
+
+  --font-texto: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-titulo: var(--font-texto);
+
+  --ease-saida: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-entrada: cubic-bezier(0.4, 0, 0.2, 1);
+}

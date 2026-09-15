@@ -90,3 +90,7 @@
   gap: var(--espaco-2);
   cursor: pointer;
 }
+
+.tela-carrinho__opcao-de-frete input[type='radio'] {
+  accent-color: var(--cor-acento);
+}

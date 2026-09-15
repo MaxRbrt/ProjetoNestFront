@@ -67,6 +67,80 @@
 }
 
 /* ---------------------------------------------
+   Ação de texto
+   Ação secundária dentro de linha de tabela ou lista — carrinho, endereços
+   — que não pode competir visualmente com o botão principal da tela, mas
+   continua com foco visível e área de toque adequada. Cor de erro por
+   padrão porque a maioria destas ações no projeto é destrutiva (remover);
+   a variante neutra cobre as que não são (editar, tornar principal).
+   --------------------------------------------- */
+.acao-de-texto {
+  background: none;
+  border: none;
+  padding: var(--espaco-1) var(--espaco-2);
+  font: inherit;
+  font-weight: 600;
+  color: var(--cor-erro);
+  cursor: pointer;
+  border-radius: var(--raio-pequeno);
+  transition: background-color var(--duracao-instantanea) var(--curva-saida);
+}
+
+.acao-de-texto:hover:not(:disabled) {
+  background: var(--cor-erro-suave);
+}
+
+.acao-de-texto:focus-visible {
+  outline: 2px solid var(--cor-erro);
+  outline-offset: 2px;
+}
+
+.acao-de-texto--neutra {
+  color: var(--cor-tinta-media);
+}
+
+.acao-de-texto--neutra:hover:not(:disabled) {
+  background: var(--cor-superficie-sutil);
+  color: var(--cor-tinta);
+}
+
+.acao-de-texto--neutra:focus-visible {
+  outline-color: var(--cor-tinta-media);
+}
+
+/* ---------------------------------------------
+   Situação do pedido
+   Mesma pill nas telas do cliente e do painel admin — a informação é a
+   mesma, o tratamento visual não deveria ser mais forte para quem
+   administra do que para quem comprou.
+   --------------------------------------------- */
+.situacao-do-pedido {
+  display: inline-block;
+  padding: var(--espaco-1) var(--espaco-3);
+  border-radius: var(--raio-pilula);
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--cor-superficie-sutil);
+}
+
+.situacao-do-pedido--pendente {
+  background: var(--cor-acento-suave);
+  color: var(--cor-acento-escuro);
+}
+
+.situacao-do-pedido--pago,
+.situacao-do-pedido--enviado,
+.situacao-do-pedido--entregue {
+  background: var(--cor-sucesso-suave);
+  color: var(--cor-marca);
+}
+
+.situacao-do-pedido--cancelado {
+  background: var(--cor-erro-suave);
+  color: var(--cor-erro);
+}
+
+/* ---------------------------------------------
    Campo de texto
    O foco engrossa a borda com o acento e adiciona um halo suave: quem tem
    pouca percepção de cor continua identificando o campo ativo pela espessura.

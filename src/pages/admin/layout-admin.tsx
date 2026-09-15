@@ -1,7 +1,11 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { Cabecalho } from '../../components/cabecalho';
-import { NavPrincipal } from '../../components/nav-principal';
+import type { ApiClient } from '../../api/cliente';
+import { Cabecalho } from '../../layout/cabecalho';
 import './layout-admin.css';
+
+interface PropsDoLayoutAdmin {
+  cliente: ApiClient;
+}
 
 // ---------------------------------------------
 // Casca do painel administrativo
@@ -10,10 +14,10 @@ import './layout-admin.css';
 // dashboard, produtos e categorias não precisem remontar este layout cada
 // uma por conta própria.
 // ---------------------------------------------
-export function LayoutAdmin() {
+export function LayoutAdmin({ cliente }: PropsDoLayoutAdmin) {
   return (
     <>
-      <Cabecalho links={<NavPrincipal />} />
+      <Cabecalho cliente={cliente} />
       <div className="painel-admin">
         <nav
           className="painel-admin__subnav"

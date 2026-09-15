@@ -108,3 +108,24 @@ export function Aviso({ children, tipo = 'erro' }: PropsDoAviso) {
     </p>
   );
 }
+
+interface PropsDoBadgeDeSituacao {
+  situacao: string;
+  rotulo: string;
+}
+
+// ---------------------------------------------
+// Situação do pedido
+// Compartilhada entre as telas do cliente e o painel admin: a classe de
+// modificador vem da própria situação em minúsculas (PAGO -> --pago), sem
+// precisar de um mapa à parte em cada tela que a usa.
+// ---------------------------------------------
+export function BadgeDeSituacao({ situacao, rotulo }: PropsDoBadgeDeSituacao) {
+  return (
+    <span
+      className={`situacao-do-pedido situacao-do-pedido--${situacao.toLowerCase()}`}
+    >
+      {rotulo}
+    </span>
+  );
+}

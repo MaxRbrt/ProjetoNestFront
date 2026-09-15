@@ -8,7 +8,7 @@ import {
   type SituacaoDoPedido,
 } from '../../api/pedidos';
 import type { Paginado } from '../../api/produtos';
-import { Aviso, Botao } from '../../components/primitivos';
+import { Aviso, BadgeDeSituacao, Botao } from '../../components/primitivos';
 import { Paginacao } from '../products/paginacao';
 import './tela-de-produtos-admin.css';
 import './tela-de-pedidos-admin.css';
@@ -227,11 +227,10 @@ function ListaDePedidos({
                 <td>{FORMATADOR_DE_DATA.format(new Date(pedido.criadoEm))}</td>
                 <td>{formatarCentavos(pedido.totalEmCentavos)}</td>
                 <td>
-                  <span
-                    className={`admin-pedidos__situacao admin-pedidos__situacao--${pedido.situacao.toLowerCase()}`}
-                  >
-                    {SITUACOES[pedido.situacao]}
-                  </span>
+                  <BadgeDeSituacao
+                    situacao={pedido.situacao}
+                    rotulo={SITUACOES[pedido.situacao]}
+                  />
                 </td>
               </tr>
             ))}

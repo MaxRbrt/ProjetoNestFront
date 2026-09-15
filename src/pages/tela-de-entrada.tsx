@@ -6,6 +6,7 @@ import { useSessao } from '../auth/contexto-de-sessao';
 import { Aviso, Botao, Campo } from '../components/primitivos';
 import { sacudir } from '../motion/tokens';
 import { useAnimacaoDeErro } from '../motion/use-animacao-de-erro';
+import { caminhoInternoSeguro } from '../utils/caminho-seguro';
 import { LayoutDeAutenticacao } from './layout-de-autenticacao';
 
 interface LocalDeOrigem {
@@ -20,6 +21,12 @@ interface LocalDeOrigem {
 // A animação de erro é disparada de forma imperativa para recomeçar mesmo
 // quando a mensagem é idêntica à da tentativa anterior, sem remontar o
 // formulário — que apagaria o que o usuário digitou.
+// O destino pós-login aceita duas origens: o "?retorno=" da query string (uso
+// do catálogo público, que não tem como passar state de navegação) e o
+// "state.de" que RotaProtegida já grava hoje. Os dois passam pela mesma
+// validação de caminho interno antes de virar destino de navegação — sem
+// isso, um link com "?retorno=https://outro-site" viraria redirecionamento
+// aberto assim que o login desse certo.
 // ---------------------------------------------
 export function TelaDeEntrada() {
   const { entrar, saidaNaoConfirmada } = useSessao();
@@ -39,7 +46,12 @@ export function TelaDeEntrada() {
 
     try {
       await entrar(email, senha);
-      const destino = (local.state as LocalDeOrigem | null)?.de ?? '/';
+      const destino =
+        caminhoInternoSeguro(
+          new URLSearchParams(local.search).get('retorno'),
+        ) ??
+        caminhoInternoSeguro((local.state as LocalDeOrigem | null)?.de) ??
+        '/';
       navegar(destino, { replace: true });
     } catch (falha) {
       const mensagem =
@@ -67,8 +79,8 @@ export function TelaDeEntrada() {
       >
         {saidaNaoConfirmada ? (
           <Aviso>
-            Não foi possível confirmar a saída no servidor. Entre novamente
-            para encerrar a sessão anterior com segurança.
+            Não foi possível confirmar a saída no servidor. Entre novamente para
+            encerrar a sessão anterior com segurança.
           </Aviso>
         ) : null}
 

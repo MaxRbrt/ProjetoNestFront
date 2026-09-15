@@ -9,8 +9,6 @@ import { criarPedido } from '../../api/pedidos';
 import { listarEnderecos, type Endereco } from '../../api/enderecos';
 import { consultarFrete, type OpcaoDeFrete } from '../../api/frete';
 import { useCarrinho } from '../../auth/contexto-do-carrinho';
-import { Cabecalho } from '../../components/cabecalho';
-import { NavPrincipal } from '../../components/nav-principal';
 import { Aviso, Botao } from '../../components/primitivos';
 import './tela-de-carrinho.css';
 
@@ -58,8 +56,9 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
   const [opcoesDeFrete, setOpcoesDeFrete] = useState<OpcaoDeFrete[]>([]);
   const [carregandoFrete, setCarregandoFrete] = useState(false);
   const [erroDeFrete, setErroDeFrete] = useState<string | null>(null);
-  const [modalidadeSelecionada, setModalidadeSelecionada] =
-    useState<string | null>(null);
+  const [modalidadeSelecionada, setModalidadeSelecionada] = useState<
+    string | null
+  >(null);
   const chaveDeIdempotenciaRef = useRef<string | null>(null);
 
   // ---------------------------------------------
@@ -81,7 +80,8 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
       })
       .catch((falha: unknown) => {
         if (cancelado) return;
-        if (falha instanceof DOMException && falha.name === 'AbortError') return;
+        if (falha instanceof DOMException && falha.name === 'AbortError')
+          return;
         setCarregandoEnderecos(false);
       });
 
@@ -129,7 +129,8 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
       })
       .catch((falha: unknown) => {
         if (cancelado) return;
-        if (falha instanceof DOMException && falha.name === 'AbortError') return;
+        if (falha instanceof DOMException && falha.name === 'AbortError')
+          return;
         setErroDeFrete(
           falha instanceof ApiError
             ? falha.message
@@ -227,181 +228,178 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
   }
 
   return (
-    <>
-      <Cabecalho links={<NavPrincipal />} />
+    <section className="tela-carrinho">
+      <h1>Carrinho</h1>
 
-      <main className="tela-carrinho">
-        <h1>Carrinho</h1>
+      {erroDeCarga ? <Aviso>{erroDeCarga}</Aviso> : null}
 
-        {erroDeCarga ? <Aviso>{erroDeCarga}</Aviso> : null}
+      {!erroDeCarga && carregando ? (
+        <p role="status">Carregando carrinho…</p>
+      ) : null}
 
-        {!erroDeCarga && carregando ? (
-          <p role="status">Carregando carrinho…</p>
-        ) : null}
+      {!erroDeCarga && !carregando && linhas.length === 0 ? (
+        <p className="tela-carrinho__vazio">
+          Seu carrinho está vazio. <Link to="/produtos">Ver produtos</Link>
+        </p>
+      ) : null}
 
-        {!erroDeCarga && !carregando && linhas.length === 0 ? (
-          <p className="tela-carrinho__vazio">
-            Seu carrinho está vazio.{' '}
-            <Link to="/produtos">Ver produtos</Link>
-          </p>
-        ) : null}
+      {!erroDeCarga && !carregando && linhas.length > 0 ? (
+        <>
+          {erroDeAcao ? <Aviso>{erroDeAcao}</Aviso> : null}
 
-        {!erroDeCarga && !carregando && linhas.length > 0 ? (
-          <>
-            {erroDeAcao ? <Aviso>{erroDeAcao}</Aviso> : null}
-
-            <table className="tela-carrinho__tabela">
-              <thead>
-                <tr>
-                  <th>Produto</th>
-                  <th>Preço</th>
-                  <th>Quantidade</th>
-                  <th>Subtotal</th>
-                  <th aria-label="Ações" />
-                </tr>
-              </thead>
-              <tbody>
-                {linhas.map((linha) => (
-                  <tr key={linha.produto.id}>
-                    <td>
-                      <span className="carrinho__produto">
-                        {urlDaImagemDoProduto(linha.produto) ? (
-                          <img
-                            className="carrinho__miniatura"
-                            src={urlDaImagemDoProduto(linha.produto)!}
-                            alt=""
-                          />
-                        ) : null}
-                        {linha.produto.nome}
-                      </span>
-                    </td>
-                    <td>{formatarCentavos(linha.produto.precoEmCentavos)}</td>
-                    <td>
-                      <input
-                        type="number"
-                        min={1}
-                        max={linha.produto.estoque}
-                        value={linha.quantidade}
-                        aria-label={`Quantidade de ${linha.produto.nome}`}
-                        onChange={(evento) => {
-                          const valor = Number(evento.target.value);
-                          if (!Number.isInteger(valor)) return;
-                          atualizarQuantidade(
-                            linha.produto.id,
-                            Math.min(Math.max(valor, 1), linha.produto.estoque),
-                          );
-                        }}
-                      />
-                    </td>
-                    <td>
-                      {formatarCentavos(
-                        linha.produto.precoEmCentavos * linha.quantidade,
-                      )}
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        aria-label={`Remover ${linha.produto.nome}`}
-                        onClick={() => removerItem(linha.produto.id)}
-                      >
-                        Remover
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <p className="tela-carrinho__subtotal">
-              Subtotal: {formatarCentavos(subtotal)}
-            </p>
-
-            <div className="tela-carrinho__endereco">
-              <h2>Entregar em</h2>
-              {carregandoEnderecos ? (
-                <p role="status">Carregando endereços…</p>
-              ) : enderecos.length === 0 ? (
-                <p>
-                  Você ainda não tem um endereço cadastrado.{' '}
-                  <Link to="/enderecos">Cadastrar endereço</Link>
-                </p>
-              ) : (
-                <div className="campo">
-                  <label className="campo__rotulo" htmlFor="endereco-de-entrega">
-                    Endereço
-                  </label>
-                  <select
-                    id="endereco-de-entrega"
-                    className="campo__entrada"
-                    value={enderecoSelecionadoId ?? ''}
-                    onChange={(evento) =>
-                      setEnderecoSelecionadoId(Number(evento.target.value))
-                    }
-                  >
-                    {enderecos.map((endereco) => (
-                      <option key={endereco.id} value={endereco.id}>
-                        {endereco.apelido} — {endereco.logradouro},{' '}
-                        {endereco.numero}, {endereco.cidade}/{endereco.uf}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-
-            {enderecoSelecionadoId ? (
-              <div className="tela-carrinho__frete">
-                <h2>Frete</h2>
-                {erroDeFrete ? <Aviso>{erroDeFrete}</Aviso> : null}
-                {!erroDeFrete && carregandoFrete ? (
-                  <p role="status">Calculando frete…</p>
-                ) : null}
-                {!erroDeFrete && !carregandoFrete && opcoesDeFrete.length > 0 ? (
-                  <fieldset className="tela-carrinho__opcoes-de-frete">
-                    <legend className="campo__rotulo">Modalidade</legend>
-                    {opcoesDeFrete.map((opcao) => (
-                      <label
-                        key={opcao.modalidade}
-                        className="tela-carrinho__opcao-de-frete"
-                      >
-                        <input
-                          type="radio"
-                          name="modalidade-de-frete"
-                          value={opcao.modalidade}
-                          checked={modalidadeSelecionada === opcao.modalidade}
-                          onChange={() =>
-                            setModalidadeSelecionada(opcao.modalidade)
-                          }
+          <table className="tela-carrinho__tabela">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>Preço</th>
+                <th>Quantidade</th>
+                <th>Subtotal</th>
+                <th aria-label="Ações" />
+              </tr>
+            </thead>
+            <tbody>
+              {linhas.map((linha) => (
+                <tr key={linha.produto.id}>
+                  <td>
+                    <span className="carrinho__produto">
+                      {urlDaImagemDoProduto(linha.produto) ? (
+                        <img
+                          className="carrinho__miniatura"
+                          src={urlDaImagemDoProduto(linha.produto)!}
+                          alt=""
                         />
-                        {opcao.modalidade} —{' '}
-                        {formatarCentavos(opcao.custoEmCentavos)} — até{' '}
-                        {opcao.prazoEmDiasUteis} dias úteis
-                      </label>
-                    ))}
-                  </fieldset>
-                ) : null}
+                      ) : null}
+                      {linha.produto.nome}
+                    </span>
+                  </td>
+                  <td>{formatarCentavos(linha.produto.precoEmCentavos)}</td>
+                  <td>
+                    <input
+                      type="number"
+                      className="campo__entrada"
+                      min={1}
+                      max={linha.produto.estoque}
+                      value={linha.quantidade}
+                      aria-label={`Quantidade de ${linha.produto.nome}`}
+                      onChange={(evento) => {
+                        const valor = Number(evento.target.value);
+                        if (!Number.isInteger(valor)) return;
+                        atualizarQuantidade(
+                          linha.produto.id,
+                          Math.min(Math.max(valor, 1), linha.produto.estoque),
+                        );
+                      }}
+                    />
+                  </td>
+                  <td>
+                    {formatarCentavos(
+                      linha.produto.precoEmCentavos * linha.quantidade,
+                    )}
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="acao-de-texto"
+                      aria-label={`Remover ${linha.produto.nome}`}
+                      onClick={() => removerItem(linha.produto.id)}
+                    >
+                      Remover
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <p className="tela-carrinho__subtotal">
+            Subtotal: {formatarCentavos(subtotal)}
+          </p>
+
+          <div className="tela-carrinho__endereco">
+            <h2>Entregar em</h2>
+            {carregandoEnderecos ? (
+              <p role="status">Carregando endereços…</p>
+            ) : enderecos.length === 0 ? (
+              <p>
+                Você ainda não tem um endereço cadastrado.{' '}
+                <Link to="/enderecos">Cadastrar endereço</Link>
+              </p>
+            ) : (
+              <div className="campo">
+                <label className="campo__rotulo" htmlFor="endereco-de-entrega">
+                  Endereço
+                </label>
+                <select
+                  id="endereco-de-entrega"
+                  className="campo__entrada"
+                  value={enderecoSelecionadoId ?? ''}
+                  onChange={(evento) =>
+                    setEnderecoSelecionadoId(Number(evento.target.value))
+                  }
+                >
+                  {enderecos.map((endereco) => (
+                    <option key={endereco.id} value={endereco.id}>
+                      {endereco.apelido} — {endereco.logradouro},{' '}
+                      {endereco.numero}, {endereco.cidade}/{endereco.uf}
+                    </option>
+                  ))}
+                </select>
               </div>
-            ) : null}
+            )}
+          </div>
 
-            <p className="tela-carrinho__total">
-              Total: {formatarCentavos(total)}
-            </p>
+          {enderecoSelecionadoId ? (
+            <div className="tela-carrinho__frete">
+              <h2>Frete</h2>
+              {erroDeFrete ? <Aviso>{erroDeFrete}</Aviso> : null}
+              {!erroDeFrete && carregandoFrete ? (
+                <p role="status">Calculando frete…</p>
+              ) : null}
+              {!erroDeFrete && !carregandoFrete && opcoesDeFrete.length > 0 ? (
+                <fieldset className="tela-carrinho__opcoes-de-frete">
+                  <legend className="campo__rotulo">Modalidade</legend>
+                  {opcoesDeFrete.map((opcao) => (
+                    <label
+                      key={opcao.modalidade}
+                      className="tela-carrinho__opcao-de-frete"
+                    >
+                      <input
+                        type="radio"
+                        name="modalidade-de-frete"
+                        value={opcao.modalidade}
+                        checked={modalidadeSelecionada === opcao.modalidade}
+                        onChange={() =>
+                          setModalidadeSelecionada(opcao.modalidade)
+                        }
+                      />
+                      {opcao.modalidade} —{' '}
+                      {formatarCentavos(opcao.custoEmCentavos)} — até{' '}
+                      {opcao.prazoEmDiasUteis} dias úteis
+                    </label>
+                  ))}
+                </fieldset>
+              ) : null}
+            </div>
+          ) : null}
 
-            <Botao
-              carregando={finalizando}
-              disabled={
-                !enderecoSelecionadoId ||
-                carregandoEnderecos ||
-                !modalidadeSelecionada ||
-                carregandoFrete
-              }
-              onClick={() => void finalizarPedido()}
-            >
-              {finalizando ? 'Finalizando…' : 'Finalizar pedido'}
-            </Botao>
-          </>
-        ) : null}
-      </main>
-    </>
+          <p className="tela-carrinho__total">
+            Total: {formatarCentavos(total)}
+          </p>
+
+          <Botao
+            carregando={finalizando}
+            disabled={
+              !enderecoSelecionadoId ||
+              carregandoEnderecos ||
+              !modalidadeSelecionada ||
+              carregandoFrete
+            }
+            onClick={() => void finalizarPedido()}
+          >
+            {finalizando ? 'Finalizando…' : 'Finalizar pedido'}
+          </Botao>
+        </>
+      ) : null}
+    </section>
   );
 }

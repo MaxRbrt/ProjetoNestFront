@@ -35,33 +35,3 @@
 .admin-pedidos .admin-tabela {
   min-width: 32rem;
 }
-
-.admin-pedidos__situacao {
-  display: inline-block;
-  padding: var(--espaco-1) var(--espaco-3);
-  border-radius: var(--raio-pilula);
-  font-size: 0.875rem;
-  font-weight: 600;
-  background: var(--cor-superficie-sutil);
-}
-
-.admin-pedidos__situacao--pendente {
-  background: var(--cor-acento-suave);
-  color: var(--cor-acento-escuro);
-}
-
-.admin-pedidos__situacao--pago {
-  background: var(--cor-sucesso-suave);
-  color: var(--cor-marca);
-}
-
-.admin-pedidos__situacao--cancelado {
-  background: var(--cor-erro-suave);
-  color: var(--cor-erro);
-}
-
-.admin-pedidos__situacao--enviado,
-.admin-pedidos__situacao--entregue {
-  background: var(--cor-sucesso-suave);
-  color: var(--cor-marca);
-}

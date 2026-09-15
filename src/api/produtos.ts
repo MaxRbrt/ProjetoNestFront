@@ -42,6 +42,9 @@ export interface FiltroDeProdutos {
   categoria: number | null;
   busca: string;
   pagina: number;
+  ordenarPor: 'preco' | 'nome' | null;
+  direcao: 'asc' | 'desc';
+  limite?: number;
 }
 
 const CATEGORIA_PADRAO = null;
@@ -59,6 +62,13 @@ export function listarProdutos(
 ): Promise<Paginado<Produto>> {
   const parametros = new URLSearchParams();
   parametros.set('pagina', String(filtro.pagina));
+  if (filtro.ordenarPor !== null) {
+    parametros.set('ordenarPor', filtro.ordenarPor);
+    parametros.set('direcao', filtro.direcao);
+  }
+  if (filtro.limite !== undefined) {
+    parametros.set('limite', String(filtro.limite));
+  }
   if (filtro.categoria !== null) {
     parametros.set('categoriaId', String(filtro.categoria));
   }
@@ -118,11 +128,22 @@ export function filtroDaUrl(parametros: URLSearchParams): FiltroDeProdutos {
     Number.isInteger(paginaBruta) && paginaBruta >= 1
       ? paginaBruta
       : PAGINA_PADRAO;
+  const ordenacaoBruta = parametros.get('ordenarPor');
+  const ordenarPor =
+    ordenacaoBruta === 'preco' || ordenacaoBruta === 'nome'
+      ? ordenacaoBruta
+      : null;
+  const direcao =
+    ordenarPor !== null && parametros.get('direcao') === 'desc'
+      ? 'desc'
+      : 'asc';
 
   return {
     categoria,
     busca: parametros.get('busca') ?? BUSCA_PADRAO,
     pagina,
+    ordenarPor,
+    direcao,
   };
 }
 
@@ -141,6 +162,10 @@ export function urlDoFiltro(filtro: FiltroDeProdutos): URLSearchParams {
   }
   if (filtro.pagina !== PAGINA_PADRAO) {
     parametros.set('pagina', String(filtro.pagina));
+  }
+  if (filtro.ordenarPor !== null) {
+    parametros.set('ordenarPor', filtro.ordenarPor);
+    parametros.set('direcao', filtro.direcao);
   }
   return parametros;
 }

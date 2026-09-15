@@ -1,27 +1,63 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { StrictMode } from 'react';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import { listarPedidos } from '../../api/pedidos';
 import type { Pedido } from '../../api/pedidos';
 import { ApiError, type ApiClient } from '../../api/cliente';
 import { TelaDeDetalheDoPedido } from '../pedidos/tela-de-detalhe-do-pedido';
 import { TelaDePedidosAdmin } from './tela-de-pedidos-admin';
 
-vi.mock('../../../src/components/cabecalho', () => ({ Cabecalho: () => null }));
-vi.mock('../../../src/components/nav-principal', () => ({ NavPrincipal: () => null }));
-
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 function criarPedido(situacao: Pedido['situacao'] = 'PENDENTE'): Pedido {
   return {
-    id: 12, situacao, subtotalEmCentavos: 4500, freteEmCentavos: 0, modalidadeDeFrete: 'PAC', prazoEmDiasUteis: 5,
-    totalEmCentavos: 4500, criadoEm: '2026-09-08T12:00:00Z', usuarioId: 'cliente-teste',
-    chaveDeIdempotencia: null, hashDoPayload: null,
-    enderecoId: 1, enderecoDestinatario: 'Fulano de Tal', enderecoCep: '01310100',
-    enderecoLogradouro: 'Av. Paulista', enderecoNumero: '1000', enderecoComplemento: null,
-    enderecoBairro: 'Bela Vista', enderecoCidade: 'São Paulo', enderecoUf: 'SP',
-    itens: [{ id: 1, pedidoId: 12, produtoId: 9, nomeDoProduto: 'Produto da compra', precoUnitarioEmCentavos: 1500, quantidade: 3 }],
+    id: 12,
+    situacao,
+    subtotalEmCentavos: 4500,
+    freteEmCentavos: 0,
+    modalidadeDeFrete: 'PAC',
+    prazoEmDiasUteis: 5,
+    totalEmCentavos: 4500,
+    criadoEm: '2026-09-08T12:00:00Z',
+    usuarioId: 'cliente-teste',
+    chaveDeIdempotencia: null,
+    hashDoPayload: null,
+    enderecoId: 1,
+    enderecoDestinatario: 'Fulano de Tal',
+    enderecoCep: '01310100',
+    enderecoLogradouro: 'Av. Paulista',
+    enderecoNumero: '1000',
+    enderecoComplemento: null,
+    enderecoBairro: 'Bela Vista',
+    enderecoCidade: 'São Paulo',
+    enderecoUf: 'SP',
+    itens: [
+      {
+        id: 1,
+        pedidoId: 12,
+        produtoId: 9,
+        nomeDoProduto: 'Produto da compra',
+        precoUnitarioEmCentavos: 1500,
+        quantidade: 3,
+      },
+    ],
   };
 }
 
@@ -31,10 +67,26 @@ function abrirDetalhe(
   contexto: 'cliente' | 'admin' = 'admin',
   id = '12',
 ) {
-  render(<StrictMode><MemoryRouter initialEntries={[`/admin/pedidos/${id}?situacao=PENDENTE&pagina=2`]}>
-    <LocalDaPagina />
-    <Routes><Route path="/admin/pedidos/:id" element={<TelaDeDetalheDoPedido cliente={{ get, patch } as unknown as ApiClient} contexto={contexto} />} /></Routes>
-  </MemoryRouter></StrictMode>);
+  render(
+    <StrictMode>
+      <MemoryRouter
+        initialEntries={[`/admin/pedidos/${id}?situacao=PENDENTE&pagina=2`]}
+      >
+        <LocalDaPagina />
+        <Routes>
+          <Route
+            path="/admin/pedidos/:id"
+            element={
+              <TelaDeDetalheDoPedido
+                cliente={{ get, patch } as unknown as ApiClient}
+                contexto={contexto}
+              />
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    </StrictMode>,
+  );
 }
 
 function abrirDetalheDoCliente(
@@ -42,9 +94,23 @@ function abrirDetalheDoCliente(
   post = vi.fn(),
   patch = vi.fn(),
 ) {
-  render(<StrictMode><MemoryRouter initialEntries={['/pedidos/12']}>
-    <Routes><Route path="/pedidos/:id" element={<TelaDeDetalheDoPedido cliente={{ get, post, patch } as unknown as ApiClient} contexto="cliente" />} /></Routes>
-  </MemoryRouter></StrictMode>);
+  render(
+    <StrictMode>
+      <MemoryRouter initialEntries={['/pedidos/12']}>
+        <Routes>
+          <Route
+            path="/pedidos/:id"
+            element={
+              <TelaDeDetalheDoPedido
+                cliente={{ get, post, patch } as unknown as ApiClient}
+                contexto="cliente"
+              />
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    </StrictMode>,
+  );
 }
 
 function criarPagamento(
@@ -52,15 +118,23 @@ function criarPagamento(
   motivoDeRecusa: string | null = null,
 ) {
   return {
-    id: 1, pedidoId: 12, status, ultimosDigitosDoCartao: '1111', motivoDeRecusa,
-    criadoEm: '2026-09-10T12:00:00Z', atualizadoEm: '2026-09-10T12:00:00Z',
+    id: 1,
+    pedidoId: 12,
+    status,
+    ultimosDigitosDoCartao: '1111',
+    motivoDeRecusa,
+    criadoEm: '2026-09-10T12:00:00Z',
+    atualizadoEm: '2026-09-10T12:00:00Z',
   };
 }
 
 async function pagarCom(cartao: string) {
-  fireEvent.change(await screen.findByRole('textbox', { name: 'Número do cartão' }), {
-    target: { value: cartao },
-  });
+  fireEvent.change(
+    await screen.findByRole('textbox', { name: 'Número do cartão' }),
+    {
+      target: { value: cartao },
+    },
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Pagar' }));
 }
 
@@ -74,23 +148,35 @@ async function pagarCom(cartao: string) {
 // ---------------------------------------------
 describe('Pagamento', () => {
   it('cartão recusado mantém o formulário e mostra o motivo', async () => {
-    const post = vi.fn().mockResolvedValue(
-      criarPagamento('RECUSADO', 'Cartão recusado pela operadora (simulado).'),
-    );
+    const post = vi
+      .fn()
+      .mockResolvedValue(
+        criarPagamento(
+          'RECUSADO',
+          'Cartão recusado pela operadora (simulado).',
+        ),
+      );
     abrirDetalheDoCliente(vi.fn().mockResolvedValue(criarPedido()), post);
 
     await pagarCom('4000000000000002');
 
     await screen.findByText('Cartão recusado pela operadora (simulado).');
-    expect((screen.getByRole('button', { name: 'Pagar' }) as HTMLButtonElement).disabled).toBe(false);
-    expect(screen.queryByRole('button', { name: 'Atualizar pedido' })).toBeNull();
+    expect(
+      (screen.getByRole('button', { name: 'Pagar' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(false);
+    expect(
+      screen.queryByRole('button', { name: 'Atualizar pedido' }),
+    ).toBeNull();
   });
 
   it('aprovação recarrega o pedido e o formulário some', async () => {
     let pagou = false;
-    const get = vi.fn().mockImplementation(() =>
-      Promise.resolve(pagou ? criarPedido('PAGO') : criarPedido()),
-    );
+    const get = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(pagou ? criarPedido('PAGO') : criarPedido()),
+      );
     const post = vi.fn().mockImplementation(() => {
       pagou = true;
       return Promise.resolve(criarPagamento('APROVADO'));
@@ -99,7 +185,7 @@ describe('Pagamento', () => {
 
     await pagarCom('4111111111111111');
 
-    await screen.findByText(/· Pago/);
+    await screen.findByText('Pago');
     expect(post).toHaveBeenCalledWith('/orders/12/payments', {
       numeroDoCartao: '4111111111111111',
     });
@@ -113,24 +199,31 @@ describe('Pagamento', () => {
 
     await pagarCom('4111111111111111');
 
-    await screen.findByText(/Não foi possível confirmar o resultado do pagamento/);
-    expect((screen.getByRole('button', { name: 'Pagar' }) as HTMLButtonElement).disabled).toBe(true);
+    await screen.findByText(
+      /Não foi possível confirmar o resultado do pagamento/,
+    );
+    expect(
+      (screen.getByRole('button', { name: 'Pagar' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
 
     get.mockResolvedValue(criarPedido('PAGO'));
     fireEvent.click(screen.getByRole('button', { name: 'Atualizar pedido' }));
 
-    await screen.findByText(/· Pago/);
+    await screen.findByText('Pago');
     expect(post).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: 'Pagar' })).toBeNull();
   });
 
   it('perda da leitura após pagamento aprovado também bloqueia, sem repetir o pagamento', async () => {
     let pagou = false;
-    const get = vi.fn().mockImplementation(() =>
-      pagou
-        ? Promise.reject(new TypeError('rede indisponível'))
-        : Promise.resolve(criarPedido()),
-    );
+    const get = vi
+      .fn()
+      .mockImplementation(() =>
+        pagou
+          ? Promise.reject(new TypeError('rede indisponível'))
+          : Promise.resolve(criarPedido()),
+      );
     const post = vi.fn().mockImplementation(() => {
       pagou = true;
       return Promise.resolve(criarPagamento('APROVADO'));
@@ -139,9 +232,14 @@ describe('Pagamento', () => {
 
     await pagarCom('4111111111111111');
 
-    await screen.findByText(/Não foi possível confirmar o resultado do pagamento/);
+    await screen.findByText(
+      /Não foi possível confirmar o resultado do pagamento/,
+    );
     expect(post).toHaveBeenCalledTimes(1);
-    expect((screen.getByRole('button', { name: 'Pagar' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      (screen.getByRole('button', { name: 'Pagar' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
   });
 });
 
@@ -151,7 +249,9 @@ describe('Contrato de pedidos', () => {
     const cliente = { get } as unknown as ApiClient;
     const sinal = new AbortController().signal;
     await listarPedidos(cliente, 2, sinal, 'PAGO');
-    expect(get).toHaveBeenCalledWith('/orders?pagina=2&situacao=PAGO', { signal: sinal });
+    expect(get).toHaveBeenCalledWith('/orders?pagina=2&situacao=PAGO', {
+      signal: sinal,
+    });
   });
 
   it('preserva a consulta do cliente quando nenhum filtro é fornecido', async () => {
@@ -165,49 +265,113 @@ describe('Contrato de pedidos', () => {
 function LocalDaPagina() {
   const local = useLocation();
   const navegar = useNavigate();
-  return <><output data-testid="local">{local.pathname}{local.search}</output><button onClick={() => navegar(-1)}>Voltar no navegador</button><button onClick={() => navegar('/admin/pedidos/13')}>Outro pedido</button></>;
+  return (
+    <>
+      <output data-testid="local">
+        {local.pathname}
+        {local.search}
+      </output>
+      <button onClick={() => navegar(-1)}>Voltar no navegador</button>
+      <button onClick={() => navegar('/admin/pedidos/13')}>Outro pedido</button>
+    </>
+  );
 }
 
 function abrirLista(get: ReturnType<typeof vi.fn>, consulta = '') {
-  render(<StrictMode><MemoryRouter initialEntries={[`/admin/pedidos${consulta}`]}>
-    <LocalDaPagina /><Routes><Route path="/admin/pedidos" element={<TelaDePedidosAdmin cliente={{ get } as unknown as ApiClient} />} /></Routes>
-  </MemoryRouter></StrictMode>);
+  render(
+    <StrictMode>
+      <MemoryRouter initialEntries={[`/admin/pedidos${consulta}`]}>
+        <LocalDaPagina />
+        <Routes>
+          <Route
+            path="/admin/pedidos"
+            element={
+              <TelaDePedidosAdmin cliente={{ get } as unknown as ApiClient} />
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    </StrictMode>,
+  );
 }
 
 describe('Listagem administrativa', () => {
   it('lê página e situação da URL, reinicia página ao filtrar e acompanha Voltar', async () => {
-    const get = vi.fn().mockResolvedValue({ dados: [criarPedido()], total: 30, pagina: 2, limite: 20 });
+    const get = vi.fn().mockResolvedValue({
+      dados: [criarPedido()],
+      total: 30,
+      pagina: 2,
+      limite: 20,
+    });
     abrirLista(get, '?situacao=PENDENTE&pagina=2');
     await screen.findByRole('link', { name: '#12' });
-    expect(get).toHaveBeenCalledWith('/orders?pagina=2&situacao=PENDENTE', expect.anything());
-    fireEvent.change(screen.getByLabelText('Situação'), { target: { value: 'PAGO' } });
-    await waitFor(() => expect(get).toHaveBeenCalledWith('/orders?pagina=1&situacao=PAGO', expect.anything()));
+    expect(get).toHaveBeenCalledWith(
+      '/orders?pagina=2&situacao=PENDENTE',
+      expect.anything(),
+    );
+    fireEvent.change(screen.getByLabelText('Situação'), {
+      target: { value: 'PAGO' },
+    });
+    await waitFor(() =>
+      expect(get).toHaveBeenCalledWith(
+        '/orders?pagina=1&situacao=PAGO',
+        expect.anything(),
+      ),
+    );
     expect(screen.getByTestId('local').textContent).toContain('pagina=1');
-    fireEvent.click(screen.getByRole('button', { name: 'Voltar no navegador' }));
-    await waitFor(() => expect((screen.getByLabelText('Situação') as HTMLSelectElement).value).toBe('PENDENTE'));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Voltar no navegador' }),
+    );
+    await waitFor(() =>
+      expect(
+        (screen.getByLabelText('Situação') as HTMLSelectElement).value,
+      ).toBe('PENDENTE'),
+    );
   });
 
   it('preserva o filtro no link para detalhe', async () => {
-    abrirLista(vi.fn().mockResolvedValue({ dados: [criarPedido('PAGO')], total: 1, pagina: 1, limite: 20 }), '?situacao=PAGO');
-    expect((await screen.findByRole('link', { name: '#12' })).getAttribute('href')).toBe('/admin/pedidos/12?situacao=PAGO');
+    abrirLista(
+      vi.fn().mockResolvedValue({
+        dados: [criarPedido('PAGO')],
+        total: 1,
+        pagina: 1,
+        limite: 20,
+      }),
+      '?situacao=PAGO',
+    );
+    expect(
+      (await screen.findByRole('link', { name: '#12' })).getAttribute('href'),
+    ).toBe('/admin/pedidos/12?situacao=PAGO');
   });
 
   it('normaliza parâmetros inválidos antes de consultar a API', async () => {
-    const get = vi.fn().mockResolvedValue({ dados: [], total: 0, pagina: 1, limite: 20 });
+    const get = vi
+      .fn()
+      .mockResolvedValue({ dados: [], total: 0, pagina: 1, limite: 20 });
     abrirLista(get, '?situacao=XPTO&pagina=1e100');
     await screen.findByText('Nenhum pedido encontrado.');
-    expect(get.mock.calls.every(([url]) => url === '/orders?pagina=1')).toBe(true);
+    expect(get.mock.calls.every(([url]) => url === '/orders?pagina=1')).toBe(
+      true,
+    );
   });
 
   it('descarta resposta antiga após mudar o filtro mesmo quando transporte ignora aborto', async () => {
     let concluir!: (valor: unknown) => void;
-    const get = vi.fn().mockImplementation((url: string) => url.includes('PENDENTE')
-      ? new Promise((resolve) => { concluir = resolve; })
-      : Promise.resolve({ dados: [], total: 0, pagina: 1, limite: 20 }));
+    const get = vi.fn().mockImplementation((url: string) =>
+      url.includes('PENDENTE')
+        ? new Promise((resolve) => {
+            concluir = resolve;
+          })
+        : Promise.resolve({ dados: [], total: 0, pagina: 1, limite: 20 }),
+    );
     abrirLista(get, '?situacao=PENDENTE');
-    fireEvent.change(screen.getByLabelText('Situação'), { target: { value: 'CANCELADO' } });
+    fireEvent.change(screen.getByLabelText('Situação'), {
+      target: { value: 'CANCELADO' },
+    });
     await screen.findByText('Nenhum pedido encontrado nesta situação.');
-    await act(async () => concluir({ dados: [criarPedido()], total: 1, pagina: 1, limite: 20 }));
+    await act(async () =>
+      concluir({ dados: [criarPedido()], total: 1, pagina: 1, limite: 20 }),
+    );
     expect(screen.queryByRole('link', { name: '#12' })).toBeNull();
   });
 
@@ -225,17 +389,31 @@ describe('Listagem administrativa', () => {
 describe('Detalhe e transições', () => {
   it('não aplica resposta de escrita do pedido anterior depois de navegar', async () => {
     let concluir!: (pedido: Pedido) => void;
-    const get = vi.fn().mockImplementation((url: string) => Promise.resolve({ ...criarPedido('PAGO'), id: Number(url.split('/').pop()) }));
-    const patch = vi.fn().mockImplementation(() => new Promise<Pedido>((resolve) => { concluir = resolve; }));
+    const get = vi.fn().mockImplementation((url: string) =>
+      Promise.resolve({
+        ...criarPedido('PAGO'),
+        id: Number(url.split('/').pop()),
+      }),
+    );
+    const patch = vi.fn().mockImplementation(
+      () =>
+        new Promise<Pedido>((resolve) => {
+          concluir = resolve;
+        }),
+    );
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     abrirDetalhe(get, patch);
-    fireEvent.click(await screen.findByRole('button', { name: 'Marcar como enviado' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Marcar como enviado' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Outro pedido' }));
     await screen.findByRole('heading', { name: 'Pedido #13' });
     await act(async () => concluir(criarPedido('ENVIADO')));
     expect(screen.queryByRole('heading', { name: 'Pedido #12' })).toBeNull();
     expect(screen.queryByText('Pedido marcado como enviado.')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Marcar como enviado' })).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Marcar como enviado' }),
+    ).toBeTruthy();
   });
 
   it('não oferece a nenhum contexto o registro manual de pagamento', async () => {
@@ -248,39 +426,69 @@ describe('Detalhe e transições', () => {
 
   it('não aplica leitura atrasada do pedido anterior depois de navegar', async () => {
     let concluir!: (pedido: Pedido) => void;
-    const get = vi.fn().mockImplementation((url: string) => url === '/orders/12'
-      ? new Promise<Pedido>((resolve) => { concluir = resolve; })
-      : Promise.resolve({ ...criarPedido('CANCELADO'), id: 13 }));
+    const get = vi.fn().mockImplementation((url: string) =>
+      url === '/orders/12'
+        ? new Promise<Pedido>((resolve) => {
+            concluir = resolve;
+          })
+        : Promise.resolve({ ...criarPedido('CANCELADO'), id: 13 }),
+    );
     abrirDetalhe(get);
     fireEvent.click(screen.getByRole('button', { name: 'Outro pedido' }));
     await screen.findByRole('heading', { name: 'Pedido #13' });
     await act(async () => concluir(criarPedido()));
     expect(screen.queryByRole('heading', { name: 'Pedido #12' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Marcar como enviado' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Marcar como enviado' }),
+    ).toBeNull();
   });
 
   it('mantém cancelamento de pendente no contexto do cliente', async () => {
     const patch = vi.fn().mockResolvedValue(criarPedido('CANCELADO'));
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     abrirDetalhe(vi.fn().mockResolvedValue(criarPedido()), patch, 'cliente');
-    fireEvent.click(await screen.findByRole('button', { name: 'Cancelar pedido' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Cancelar pedido' }),
+    );
     await screen.findByText('Pedido cancelado. Estoque devolvido.');
-    expect(patch).toHaveBeenCalledWith('/orders/12/status', { situacao: 'CANCELADO' });
-    expect(screen.getByRole('link', { name: /Voltar para meus pedidos/ }).getAttribute('href')).toBe('/pedidos');
+    expect(patch).toHaveBeenCalledWith('/orders/12/status', {
+      situacao: 'CANCELADO',
+    });
+    expect(
+      screen
+        .getByRole('link', { name: /Voltar para meus pedidos/ })
+        .getAttribute('href'),
+    ).toBe('/pedidos');
   });
 
   it('conserva bloqueio quando a leitura de recuperação também falha', async () => {
     const get = vi.fn().mockResolvedValue(criarPedido('PAGO'));
-    const patch = vi.fn().mockRejectedValue(new ApiError(409, 'Pedido já alterado'));
+    const patch = vi
+      .fn()
+      .mockRejectedValue(new ApiError(409, 'Pedido já alterado'));
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     abrirDetalhe(get, patch);
-    fireEvent.click(await screen.findByRole('button', { name: 'Marcar como enviado' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Marcar como enviado' }),
+    );
     await screen.findByText(/Pedido já alterado/);
     get.mockRejectedValue(new ApiError(503, 'Leitura indisponível'));
     fireEvent.click(screen.getByRole('button', { name: 'Atualizar pedido' }));
     await screen.findByText('Leitura indisponível');
-    expect((screen.getByRole('button', { name: 'Marcar como enviado' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: 'Cancelar pedido' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Marcar como enviado',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Cancelar pedido',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
     expect(screen.getByText('Produto da compra')).toBeTruthy();
     expect(patch).toHaveBeenCalledTimes(1);
   });
@@ -288,37 +496,65 @@ describe('Detalhe e transições', () => {
     const patch = vi.fn().mockResolvedValue(criarPedido('ENVIADO'));
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     abrirDetalhe(vi.fn().mockResolvedValue(criarPedido('PAGO')), patch);
-    fireEvent.click(await screen.findByRole('button', { name: 'Marcar como enviado' }));
-    await waitFor(() => expect(patch).toHaveBeenCalledWith('/orders/12/status', { situacao: 'ENVIADO' }));
-    await screen.findByText(/· Enviado/);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Marcar como enviado' }),
+    );
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith('/orders/12/status', {
+        situacao: 'ENVIADO',
+      }),
+    );
+    await screen.findByText('Enviado');
     expect(screen.getByText('Produto da compra')).toBeTruthy();
-    expect(screen.getByRole('link', { name: /Voltar para pedidos/ }).getAttribute('href')).toBe('/admin/pedidos?situacao=PENDENTE&pagina=2');
-    expect(screen.queryByRole('button', { name: 'Marcar como enviado' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Marcar como entregue' })).toBeTruthy();
+    expect(
+      screen
+        .getByRole('link', { name: /Voltar para pedidos/ })
+        .getAttribute('href'),
+    ).toBe('/admin/pedidos?situacao=PENDENTE&pagina=2');
+    expect(
+      screen.queryByRole('button', { name: 'Marcar como enviado' }),
+    ).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Marcar como entregue' }),
+    ).toBeTruthy();
   });
 
   it('exige confirmação para cancelar um pedido pago e explica o efeito', async () => {
     const patch = vi.fn();
     const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
     abrirDetalhe(vi.fn().mockResolvedValue(criarPedido('PAGO')), patch);
-    fireEvent.click(await screen.findByRole('button', { name: 'Cancelar pedido' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Cancelar pedido' }),
+    );
     expect(confirmar.mock.calls[0][0]).toMatch(/estoque/i);
     expect(confirmar.mock.calls[0][0]).toMatch(/reembolso/i);
     expect(patch).not.toHaveBeenCalled();
   });
 
   it('mantém cliente sem ação de logística ou cancelamento de pago', async () => {
-    abrirDetalhe(vi.fn().mockResolvedValue(criarPedido('PAGO')), vi.fn(), 'cliente');
+    abrirDetalhe(
+      vi.fn().mockResolvedValue(criarPedido('PAGO')),
+      vi.fn(),
+      'cliente',
+    );
     await screen.findByText('Produto da compra');
-    expect(screen.queryByRole('button', { name: 'Marcar como enviado' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Cancelar pedido' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Marcar como enviado' }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Cancelar pedido' }),
+    ).toBeNull();
   });
 
   it('mantém cancelado como terminal', async () => {
     abrirDetalhe(vi.fn().mockResolvedValue(criarPedido('CANCELADO')));
     await screen.findByText('Produto da compra');
-    expect(screen.queryByRole('button', { name: 'Marcar como enviado' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Cancelar pedido' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Marcar como enviado' }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Cancelar pedido' }),
+    ).toBeNull();
   });
 
   it('após resposta perdida, bloqueia nova escrita até consultar a situação atual', async () => {
@@ -326,19 +562,31 @@ describe('Detalhe e transições', () => {
     const patch = vi.fn().mockRejectedValue(new TypeError('rede indisponível'));
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     abrirDetalhe(get, patch);
-    fireEvent.click(await screen.findByRole('button', { name: 'Marcar como enviado' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Marcar como enviado' }),
+    );
     await screen.findByRole('alert');
     expect(screen.getByText('Produto da compra')).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Cancelar pedido' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Cancelar pedido',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
     get.mockResolvedValue(criarPedido('ENVIADO'));
     fireEvent.click(screen.getByRole('button', { name: 'Atualizar pedido' }));
-    await screen.findByText(/· Enviado/);
+    await screen.findByText('Enviado');
     expect(patch).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('button', { name: 'Marcar como enviado' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Marcar como enviado' }),
+    ).toBeNull();
   });
 
   it('oferece nova tentativa quando a leitura falha', async () => {
-    const get = vi.fn().mockRejectedValue(new ApiError(503, 'Serviço indisponível'));
+    const get = vi
+      .fn()
+      .mockRejectedValue(new ApiError(503, 'Serviço indisponível'));
     abrirDetalhe(get);
     await screen.findByRole('alert');
     get.mockResolvedValue(criarPedido());
@@ -355,11 +603,24 @@ describe('Detalhe e transições', () => {
 
   it('bloqueia as duas ações enquanto a escrita está em andamento', async () => {
     let concluir!: (pedido: Pedido) => void;
-    const patch = vi.fn().mockImplementation(() => new Promise<Pedido>((resolve) => { concluir = resolve; }));
+    const patch = vi.fn().mockImplementation(
+      () =>
+        new Promise<Pedido>((resolve) => {
+          concluir = resolve;
+        }),
+    );
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     abrirDetalhe(vi.fn().mockResolvedValue(criarPedido('PAGO')), patch);
-    fireEvent.click(await screen.findByRole('button', { name: 'Marcar como enviado' }));
-    expect((screen.getByRole('button', { name: 'Cancelar pedido' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Marcar como enviado' }),
+    );
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Cancelar pedido',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
     await act(async () => concluir(criarPedido('ENVIADO')));
     expect(patch).toHaveBeenCalledTimes(1);
   });

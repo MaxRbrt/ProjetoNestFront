@@ -36,7 +36,7 @@ export function useListaDeProdutosAdmin(
 
     listarProdutos(
       cliente,
-      { categoria: null, busca: '', pagina },
+      { categoria: null, busca: '', pagina, ordenarPor: null, direcao: 'asc' },
       controlador.signal,
     )
       .then((resultado) => {
