@@ -1,54 +1,65 @@
-import { motion } from 'motion/react';
-import { useSessao } from '../auth/contexto-de-sessao';
-import { listaContainer, listaItem } from '../motion/tokens';
-import './tela-inicial.css';
+import { useEffect } from 'react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import type { ApiClient } from '../api/cliente';
+import { useGsap } from '../hooks/use-gsap';
+import { Beneficios } from '../sections/beneficios';
+import { FaixaDeCategorias } from '../sections/faixa-de-categorias';
+import { Hero } from '../sections/hero';
+import { Vitrine } from '../sections/vitrine';
+
+gsap.registerPlugin(ScrollTrigger);
 
 // ---------------------------------------------
-// Tela inicial autenticada
-// Nasceu como confirmação de que a sessão e o papel do usuário chegavam
-// certos do backend, antes de catálogo e painel admin existirem. Os dois já
-// estão prontos; esta tela virar uma home de verdade fica para o bloco de
-// carrinho e pedidos.
+// Home pública
+// Cada vitrine carrega por conta própria. O observador recalcula os pontos
+// de entrada quando os esqueletos mudam de altura, inclusive em rede lenta.
+// O contexto de useGsap desfaz animações e triggers ao sair da página.
 // ---------------------------------------------
-export function TelaInicial() {
-  const { usuario } = useSessao();
+export function TelaInicial({ cliente }: { cliente: ApiClient }) {
+  const escopo = useGsap((contexto) => {
+    for (const secao of contexto.selector!('[data-secao-home]')) {
+      gsap.from(secao, {
+        opacity: 0,
+        y: 20,
+        duration: 0.35,
+        ease: 'power2.out',
+        scrollTrigger: { trigger: secao, start: 'clamp(top 90%)', once: true },
+      });
+    }
+  });
+
+  useEffect(() => {
+    if (!escopo.current || typeof ResizeObserver === 'undefined') return;
+    const observador = new ResizeObserver(() => ScrollTrigger.refresh());
+    observador.observe(escopo.current);
+    return () => observador.disconnect();
+  }, [escopo]);
 
   return (
-    <motion.section
-      className="inicio"
-      variants={listaContainer}
-      initial="oculto"
-      animate="visivel"
-    >
-      <motion.h1 className="inicio__titulo" variants={listaItem}>
-        Sua conta
-      </motion.h1>
-
-      <motion.div className="inicio__cartoes" variants={listaItem}>
-        <div className="cartao">
-          <span className="cartao__rotulo">Email</span>
-          <span className="cartao__valor">{usuario?.email}</span>
+    <div className="flex w-full justify-center px-4 py-6 sm:px-6 lg:px-8">
+      <div
+        ref={escopo}
+        className="flex w-full min-w-0 max-w-7xl flex-col gap-10 lg:gap-12"
+      >
+        <Hero />
+        <div data-secao-home>
+          <FaixaDeCategorias cliente={cliente} />
         </div>
-
-        <div className="cartao">
-          <span className="cartao__rotulo">Papel de acesso</span>
-          <span className="selo">{usuario?.papel}</span>
+        <div data-secao-home>
+          <Vitrine cliente={cliente} titulo="No catálogo" />
         </div>
-
-        <div className="cartao">
-          <span className="cartao__rotulo">Email verificado</span>
-          <span
-            className={`selo ${usuario?.emailVerificado ? 'selo--sucesso' : ''}`}
-          >
-            {usuario?.emailVerificado ? 'Confirmado' : 'Pendente'}
-          </span>
+        <div data-secao-home>
+          <Vitrine
+            cliente={cliente}
+            titulo="Menores preços"
+            ordenarPor="preco"
+          />
         </div>
-      </motion.div>
-
-      <motion.p className="inicio__nota" variants={listaItem}>
-        Catálogo e busca já estão disponíveis em Produtos. Pedidos entram no
-        próximo bloco.
-      </motion.p>
-    </motion.section>
+        <div data-secao-home>
+          <Beneficios />
+        </div>
+      </div>
+    </div>
   );
 }

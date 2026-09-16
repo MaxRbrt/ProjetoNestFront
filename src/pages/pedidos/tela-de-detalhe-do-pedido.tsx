@@ -1,4 +1,3 @@
-import { formatarCentavos } from '../../utils/dinheiro';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import type { ApiClient } from '../../api/cliente';
@@ -6,13 +5,15 @@ import { ApiError } from '../../api/cliente';
 import { atualizarSituacaoDoPedido, buscarPedido } from '../../api/pedidos';
 import type { Pedido, SituacaoDoPedido } from '../../api/pedidos';
 import { iniciarPagamento } from '../../api/pagamentos';
+import { Trilha } from '../../layout/trilha';
 import {
   Aviso,
-  BadgeDeSituacao,
   Botao,
   Campo,
-} from '../../components/primitivos';
-import './tela-de-detalhe-do-pedido.css';
+  Esqueleto,
+  EtiquetaDeSituacao,
+} from '../../ui/indice';
+import { formatarCentavos } from '../../utils/dinheiro';
 
 interface PropsDaTela {
   cliente: ApiClient;
@@ -45,7 +46,9 @@ type SituacaoAlteravel = Exclude<SituacaoDoPedido, 'PENDENTE' | 'PAGO'>;
 // Detalhe compartilhado pelo cliente e painel administrativo
 // A rota administrativa já passa por RotaAdmin; o servidor é a autoridade
 // sobre cada transição. A chave descarta estado ao mudar de pedido ou contexto,
-// inclusive quando uma leitura ou escrita anterior ainda não respondeu.
+// inclusive quando uma leitura ou escrita anterior ainda não respondeu. A
+// trilha é decorativa; o link "Voltar para..." abaixo dela continua sendo o
+// alvo estável que os testes localizam pelo nome acessível.
 // ---------------------------------------------
 export function TelaDeDetalheDoPedido({
   cliente,
@@ -56,16 +59,38 @@ export function TelaDeDetalheDoPedido({
   const id = Number(parametros.id);
   const retorno =
     contexto === 'admin' ? `/admin/pedidos${local.search}` : '/pedidos';
+  const rotuloDeVoltar =
+    contexto === 'admin'
+      ? '← Voltar para pedidos'
+      : '← Voltar para meus pedidos';
 
   return (
-    <section
-      className={`detalhe-pedido${contexto === 'admin' ? ' detalhe-pedido--admin' : ''}`}
+    <div
+      className={
+        contexto === 'admin'
+          ? ''
+          : 'mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8'
+      }
     >
-      <Link to={retorno} className="detalhe-pedido__voltar">
-        {contexto === 'admin'
-          ? '← Voltar para pedidos'
-          : '← Voltar para meus pedidos'}
+      {contexto === 'cliente' ? (
+        <Trilha
+          itens={[
+            { rotulo: 'Início', para: '/' },
+            { rotulo: 'Meus pedidos', para: '/pedidos' },
+            ...(Number.isInteger(id) && id > 0
+              ? [{ rotulo: `Pedido #${id}` }]
+              : []),
+          ]}
+        />
+      ) : null}
+
+      <Link
+        to={retorno}
+        className="mt-4 inline-block text-sm font-semibold text-acento underline underline-offset-4 hover:text-acento-escuro"
+      >
+        {rotuloDeVoltar}
       </Link>
+
       {Number.isInteger(id) && id > 0 && id <= 2147483647 ? (
         <ConteudoDoPedido
           key={`${contexto}:${id}`}
@@ -74,9 +99,11 @@ export function TelaDeDetalheDoPedido({
           id={id}
         />
       ) : (
-        <Aviso>Identificador de pedido inválido.</Aviso>
+        <div className="mt-6">
+          <Aviso tipo="erro">Identificador de pedido inválido.</Aviso>
+        </div>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -184,40 +211,50 @@ function ConteudoDoPedido({
     carregando || !!acaoEmCurso || precisaAtualizar || !!erroDeCarga;
 
   return (
-    <>
-      {erroDeCarga ? <Aviso>{erroDeCarga}</Aviso> : null}
-      {erroDeAcao ? <Aviso>{erroDeAcao}</Aviso> : null}
+    <div className="mt-6 flex flex-col gap-6">
+      {erroDeCarga ? <Aviso tipo="erro">{erroDeCarga}</Aviso> : null}
+      {erroDeAcao ? <Aviso tipo="erro">{erroDeAcao}</Aviso> : null}
       {sucesso ? <Aviso tipo="sucesso">{sucesso}</Aviso> : null}
       {erroDeCarga || precisaAtualizar ? (
-        <Botao
-          variante="secundario"
-          carregando={carregando}
-          onClick={() => {
-            setCarregando(true);
-            setErroDeCarga(null);
-            setTentativa((atual) => atual + 1);
-          }}
-        >
-          {pedido ? 'Atualizar pedido' : 'Tentar novamente'}
-        </Botao>
+        <div>
+          <Botao
+            variante="secundario"
+            carregando={carregando}
+            onClick={() => {
+              setCarregando(true);
+              setErroDeCarga(null);
+              setTentativa((atual) => atual + 1);
+            }}
+          >
+            {pedido ? 'Atualizar pedido' : 'Tentar novamente'}
+          </Botao>
+        </div>
       ) : null}
 
-      {carregando ? <p role="status">Carregando pedido…</p> : null}
+      {carregando && !pedido ? <EsqueletoDoPedido /> : null}
 
       {pedido ? (
         <>
-          <h1>Pedido #{pedido.id}</h1>
-          <p className="detalhe-pedido__meta">
-            {FORMATADOR_DE_DATA.format(new Date(pedido.criadoEm))} ·{' '}
-            <BadgeDeSituacao
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-tinta sm:text-3xl">
+                Pedido #{pedido.id}
+              </h1>
+              <p className="mt-1 text-sm text-tinta-media">
+                {FORMATADOR_DE_DATA.format(new Date(pedido.criadoEm))}
+              </p>
+            </div>
+            <EtiquetaDeSituacao
               situacao={pedido.situacao}
               rotulo={ROTULO_DA_SITUACAO[pedido.situacao] ?? pedido.situacao}
             />
-          </p>
+          </div>
 
-          <div className="detalhe-pedido__endereco">
-            <h2>Endereço de entrega</h2>
-            <p>
+          <div>
+            <h2 className="mb-2 text-lg font-semibold text-tinta">
+              Endereço de entrega
+            </h2>
+            <p className="text-sm text-tinta-media">
               {pedido.enderecoDestinatario} — {pedido.enderecoLogradouro},{' '}
               {pedido.enderecoNumero}
               {pedido.enderecoComplemento
@@ -230,50 +267,46 @@ function ConteudoDoPedido({
           </div>
 
           <div
-            className="detalhe-pedido__rolagem"
             role="region"
             aria-label="Itens do pedido"
-            tabIndex={0}
+            aria-busy={carregando}
+            className={`flex flex-col gap-3 ${carregando ? 'opacity-60' : ''}`}
           >
-            <table className="detalhe-pedido__tabela" aria-busy={carregando}>
-              <thead>
-                <tr>
-                  <th>Produto</th>
-                  <th>Preço unitário</th>
-                  <th>Quantidade</th>
-                  <th>Subtotal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pedido.itens.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.nomeDoProduto}</td>
-                    <td>{formatarCentavos(item.precoUnitarioEmCentavos)}</td>
-                    <td>{item.quantidade}</td>
-                    <td>
-                      {formatarCentavos(
-                        item.precoUnitarioEmCentavos * item.quantidade,
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <h2 className="text-lg font-semibold text-tinta">Itens</h2>
+            {pedido.itens.map((item) => (
+              <div
+                key={item.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-borda bg-superficie p-4 shadow-carta"
+              >
+                <div>
+                  <p className="font-medium text-tinta">{item.nomeDoProduto}</p>
+                  <p className="text-sm text-tinta-media">
+                    {formatarCentavos(item.precoUnitarioEmCentavos)} ×{' '}
+                    {item.quantidade}
+                  </p>
+                </div>
+                <p className="font-semibold text-tinta">
+                  {formatarCentavos(
+                    item.precoUnitarioEmCentavos * item.quantidade,
+                  )}
+                </p>
+              </div>
+            ))}
           </div>
 
-          <dl className="detalhe-pedido__resumo">
-            <div>
-              <dt>Subtotal</dt>
+          <dl className="flex max-w-sm flex-col gap-1 border-t border-borda pt-3 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-tinta-media">Subtotal</dt>
               <dd>{formatarCentavos(pedido.subtotalEmCentavos)}</dd>
             </div>
-            <div>
-              <dt>
+            <div className="flex justify-between">
+              <dt className="text-tinta-media">
                 Frete ({pedido.modalidadeDeFrete}, até {pedido.prazoEmDiasUteis}{' '}
                 dias úteis)
               </dt>
               <dd>{formatarCentavos(pedido.freteEmCentavos)}</dd>
             </div>
-            <div className="detalhe-pedido__resumo-total">
+            <div className="flex justify-between border-t border-borda pt-2 text-base font-semibold text-tinta">
               <dt>Total</dt>
               <dd>{formatarCentavos(pedido.totalEmCentavos)}</dd>
             </div>
@@ -297,7 +330,7 @@ function ConteudoDoPedido({
             />
           ) : null}
 
-          <div className="detalhe-pedido__acoes">
+          <div className="flex flex-wrap gap-3">
             {contexto === 'admin' && pedido.situacao === 'PAGO' ? (
               <Botao
                 disabled={bloqueado}
@@ -336,7 +369,7 @@ function ConteudoDoPedido({
           </div>
         </>
       ) : null}
-    </>
+    </div>
   );
 }
 
@@ -404,13 +437,14 @@ function FormularioDePagamento({
   }
 
   return (
-    <div className="detalhe-pedido__pagamento">
-      <h2>Pagamento</h2>
-      {recusado ? <Aviso>{recusado}</Aviso> : null}
-      <form
-        onSubmit={aoEnviar}
-        className="detalhe-pedido__formulario-pagamento"
-      >
+    <div className="max-w-sm rounded-card border border-borda bg-superficie p-5 shadow-carta">
+      <h2 className="mb-3 text-lg font-semibold text-tinta">Pagamento</h2>
+      {recusado ? (
+        <div className="mb-3">
+          <Aviso tipo="erro">{recusado}</Aviso>
+        </div>
+      ) : null}
+      <form onSubmit={aoEnviar} className="flex flex-col gap-3">
         <Campo
           rotulo="Número do cartão"
           placeholder="0000000000000000"
@@ -425,6 +459,27 @@ function FormularioDePagamento({
           {pagando ? 'Processando…' : 'Pagar'}
         </Botao>
       </form>
+    </div>
+  );
+}
+
+// ---------------------------------------------
+// Esqueleto do detalhe
+// Exibido só na primeira carga (sem pedido ainda em memória); uma releitura
+// via "Atualizar pedido" mantém os dados antigos visíveis em vez de voltar a
+// este estado, mesmo padrão de carrinho e produto.
+// ---------------------------------------------
+function EsqueletoDoPedido() {
+  return (
+    <div
+      role="status"
+      aria-label="Carregando pedido"
+      className="flex flex-col gap-4"
+    >
+      <Esqueleto className="h-8 w-1/3" />
+      <Esqueleto className="h-20 w-full" />
+      <Esqueleto className="h-20 w-full" />
+      <Esqueleto className="h-32 w-full max-w-sm" />
     </div>
   );
 }

@@ -11,22 +11,23 @@ neste mesmo diretório pai.
 ## Estado atual
 
 Fundação, autenticação, vitrine, painel administrativo, fluxo de compra do cliente e pagamento
-simulado com ciclo de entrega prontos. Última atualização: 2026-09-11.
+simulado com ciclo de entrega prontos. Refatoração completa para Tailwind v4 + GSAP concluída em
+2026-09-16 (ver seção "Refatoração para Tailwind v4 + GSAP" abaixo). Última atualização: 2026-09-16.
 
 | Área | Estado |
 |---|---|
 | Cliente HTTP | Token em memória, fila de refresh, tratamento de erro da API e `FormData` multipart |
 | Sessão | Três estados (verificando/autenticado/anônimo), recuperação por cookie, rota protegida e rota restrita a ADMIN |
-| Telas | Login, cadastro, verificação de email, reenvio de verificação, recuperação de senha (esqueci/redefinir), inicial autenticada, vitrine, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias, carrinho, meus pedidos, detalhe de pedido (com pagamento), meus endereços |
+| Telas | Login, cadastro, verificação de email, reenvio de verificação, recuperação de senha (esqueci/redefinir), inicial pública, catálogo público, detalhe de produto, dashboard admin, listagem e formulários de produtos e categorias, carrinho, meus pedidos, detalhe de pedido (com pagamento), meus endereços |
 | Pagamento | Completo — formulário de cartão simulado no detalhe do pedido (`PENDENTE`), aprovação/recusa com retry, `PAGO`→`ENVIADO`→`ENTREGUE` só via ADMIN — 2026-09-10 |
-| Sistema visual | Tokens de cor, tipografia e motion; primitivos de botão, campo e aviso; subnavegação administrativa |
-| Vitrine | Completa — busca/categoria/página na URL, debounce, cancelamento, retry, estados de carregamento/vazio/erro, detalhe com retorno ao filtro e imagem de produto versionada |
-| Painel Admin | Completo — métricas, CRUD de catálogo e gestão de pedidos com filtro por situação, paginação na URL, detalhe, cancelamento e passos de logística (enviado/entregue). Sem confirmação manual de pagamento: removida em 2026-09-10, ver seção de pagamento |
+| Sistema visual | Tailwind v4 (`@theme` em `src/styles/tema.css`) + design system em `src/ui/` (Botao, Campo, Selecao, Etiqueta, EtiquetaDeSituacao, Aviso, Esqueleto, Preco) + GSAP via `useGsap` — ver seção própria abaixo |
+| Vitrine/Catálogo | Completa e **pública** (sem sessão) — busca/categoria/ordenação/página na URL, debounce, cancelamento, retry, estados de carregamento/vazio/erro, detalhe com retorno ao filtro, produtos relacionados por categoria e imagem de produto versionada |
+| Painel Admin | Completo — layout próprio (`LayoutAdmin`, sem cabeçalho da loja), métricas, CRUD de catálogo e gestão de pedidos com filtro por situação, paginação na URL, detalhe, cancelamento e passos de logística (enviado/entregue). Sem confirmação manual de pagamento: removida em 2026-09-10, ver seção de pagamento |
 | Carrinho, pedidos | Completo — carrinho persistido em `localStorage` limpo no logout, adicionar com teto de estoque, checkout com `Idempotency-Key` estável entre retries, seleção de endereço e de frete, "meus pedidos" paginado, detalhe com endereço/frete congelados e cancelamento (`PENDENTE`→`CANCELADO`) — ver seção própria abaixo |
 | Endereços | Completo — listar/criar/editar/remover, marcar principal, seleção no checkout — 2026-09-09 |
 | Frete | Completo — cotação PAC/SEDEX no checkout com custo e prazo, total atualiza ao trocar modalidade — 2026-09-09 |
 | Dinheiro | **Centavos inteiros.** A API fala em `precoEmCentavos`/`totalEmCentavos`/`precoUnitarioEmCentavos`; conversão para exibição e para envio vive só em `src/utils/dinheiro.ts` |
-| Testes | 50 testes (`npm test`) — `ApiClient` (fila de refresh e FormData), `ProvedorDoCarrinho`, `dinheiro.ts`, catálogo com imagem, gestão admin de pedidos e pagamento |
+| Testes | 103 testes (`npm test`) — `ApiClient` (fila de refresh e FormData), `ProvedorDoCarrinho`, `dinheiro.ts`, catálogo com imagem, gestão admin de pedidos, pagamento, layout admin e formulários de produto/categoria |
 
 ## O contrato de autenticação define a arquitetura
 
@@ -315,27 +316,28 @@ backend incluído) — só terminou com 580s, mesmo padrão já visto no backend
 
 ## Sistema visual e motion
 
-**Correção registrada em 2026-08-31:** este arquivo afirmava "brutalismo refinado" (cantos retos,
-sombra sólida, motion seco) enquanto `src/styles/tokens.css` e `src/motion/tokens.ts` já tinham
-sido reescritos para outra direção. A contradição só foi percebida ao preparar mockups para o bloco
-de navegação por papel — o registro estava mentindo sobre o próprio código. Confirmado com o
-proprietário: a direção abaixo é a que vale, retroativa à construção da vitrine.
-
-Direção atual: linguagem de e-commerce convencional — superfícies claras, cantos arredondados
-(6/10/16px, pílula em elementos de estado), sombra suave que cresce com a elevação, acento laranja
-quente (`--cor-acento`). `src/styles/tokens.css` é a fonte de verdade — não descrever a estética
-aqui sem reler os tokens primeiro; foi exatamente esse desvio que causou a correção acima.
+**Desatualizado desde 2026-09-16** — `src/styles/tokens.css` foi removido na T14 da refatoração
+(ver seção "Refatoração para Tailwind v4 + GSAP" abaixo). A fonte de verdade da paleta e da forma é
+hoje `src/styles/tema.css` (`@theme` do Tailwind v4), consumida por utilitários (`bg-acento`,
+`rounded-card`, `shadow-carta` etc.), não mais por classe CSS por tela. A linguagem visual em si —
+e-commerce convencional, superfícies claras, cantos arredondados (6/10/16px, pílula em elementos de
+estado), sombra suave que cresce com a elevação, acento laranja quente — não mudou, só a forma de
+consumo.
 
 **A regra que mantém a coerência:** a curva desacelera até parar, acompanhando as superfícies
 arredondadas — nenhum movimento trava seco. Duração 120–260ms conforme o peso da transição.
 
-Os tokens ficam em `src/motion/tokens.ts` e `src/styles/tokens.css`, e **espelham um ao outro** de
-propósito: componentes animados pelo Motion e elementos animados por CSS precisam ter o mesmo tempo,
+Os tokens de movimento ficam em `src/motion/tokens.ts` (consumidos pelo Motion, nas telas de
+autenticação) e no `@theme` de `src/styles/tema.css` (`--ease-saida`/`--ease-entrada`, consumidos
+por transições Tailwind); GSAP usa os mesmos valores literais via `useGsap`. Os três **espelham uns
+aos outros** de propósito — componentes animados por caminhos diferentes precisam ter o mesmo tempo,
 senão a interface parece ter duas personalidades. Nenhuma tela deve inventar duração ou curva
 própria.
 
-`prefers-reduced-motion` é obrigatório, não opcional. No modo reduzido tudo vira transição de
-opacidade.
+`prefers-reduced-motion` é obrigatório, não opcional — para CSS/Tailwind (`@media` dentro de
+`@layer base` em `src/index.css`), para Motion (`MotionConfig`/`useReducedMotion`) e para GSAP
+(`gsap.matchMedia()` dentro de `useGsap`, ver seção própria). No modo reduzido tudo vira o estado
+final, sem transição.
 
 **Movimento só entra quando carrega informação** — entrada escalonada comunica chegada de conteúdo;
 transição de elemento compartilhado preserva continuidade espacial. Enfeite sem função não entra.
@@ -630,3 +632,92 @@ Esse diretório é local/ignorado, portanto esta verificação não acompanha um
 
 Spec em `../projeto-test/docs/superpowers/specs/2026-09-08-gestao-admin-pedidos-design.md` e relatório
 final/comandos de commit em `.superpowers/sdd/2026-09-08-gestao-admin-pedidos/progress.md`.
+
+## Refatoração para Tailwind v4 + GSAP — 2026-09-11 a 2026-09-16
+
+Plano: `../projeto-test/docs/superpowers/plans/2026-09-11-refatoracao-frontend-loja.md`, ledger
+completo em `.superpowers/sdd/2026-09-11-refatoracao-frontend-loja/progress.md` (14 tasks). Reescreveu
+a loja inteira (exceto as 6 telas de autenticação, que já tinham migrado antes) em Tailwind v4 e um
+design system próprio, tornou o catálogo público e trocou Motion por GSAP nas seções novas — sem
+mudar nenhuma regra de negócio.
+
+**Arquitetura de pastas nova:**
+
+| Pasta | Conteúdo |
+|---|---|
+| `src/ui/` | Design system: `Botao`/`classesDeBotao`, `Campo`, `Selecao`, `Etiqueta`, `EtiquetaDeSituacao`, `Aviso`, `Esqueleto`, `Preco`. Reexportado por `src/ui/indice.ts` — importar sempre de lá, nunca do arquivo individual. |
+| `src/layout/` | `LayoutDaLoja` (cabeçalho + rodapé + skip link + único `<main id="conteudo">` da loja pública), `Cabecalho`, `MenuMobile`, `Busca`, `Trilha`, `Rodape`. As rotas `/`, `/produtos`, `/produtos/:id`, `/carrinho`, `/pedidos`, `/pedidos/:id` e `/enderecos` vivem dentro dele; `/admin/*` usa `LayoutAdmin` (`src/pages/admin/layout-admin.tsx`), que **não** monta `Cabecalho` da loja. |
+| `src/sections/` | Seções da home pública: `Hero`, `FaixaDeCategorias`, `Vitrine`, `Beneficios`. |
+| `src/produtos/` | `CartaoDeProduto`, `GradeDeProdutos`, `Relacionados` (mesma categoria do produto atual). |
+| `src/hooks/use-gsap.ts` | Único ponto de entrada para animação GSAP — `gsap.context()` + `gsap.matchMedia()`, respeita `prefers-reduced-motion` automaticamente. |
+
+**Catálogo público desde 2026-09-15.** `GET /products`, `GET /products/:id`, `GET /categories` e
+`GET /categories/:id` são públicos no backend (ver `CLAUDE.md` do backend); visitante anônimo vê
+vitrine, filtro por categoria, busca e ordenação sem sessão. Adicionar ao carrinho sem sessão leva
+ao login com `?retorno=`, validado por `caminhoInternoSeguro` (nunca por `startsWith` de string —
+caractere de controle burla checagem textual, ver `src/utils/caminho-seguro.ts`).
+
+**Regra dura de dado real, sem placeholder.** O catálogo mostra só o que o backend realmente tem:
+nome, preço em centavos, estoque, categoria, uma imagem por produto, situação do pedido, frete
+PAC/SEDEX, papel ADMIN. **Não existem** avaliações/estrelas, favoritos, preço promocional ("de/por"),
+desconto percentual, parcelamento, PIX, marca, SKU, descrição textual, especificações técnicas,
+galeria com várias imagens, recomendações personalizadas, "mais vendidos", banners cadastrados ou
+newsletter — nenhum desses pode aparecer na interface, nem com valor fixo. "Relacionados" é
+honestamente "mesma categoria"; etiquetas de estoque são derivadas do valor real (`Esgotado`,
+`Últimas unidades`), nunca inventadas.
+
+**Testes de contrato por marcação, não só por comportamento.** `formulario-de-produto.test.tsx` e
+`gestao-de-pedidos.test.tsx` amarram nomes acessíveis específicos (rótulos `Nome`/`Preço`/`Categoria`
+etc. por `getByLabelText`, link `#<id>`, textos de estado vazio, heading `Editar produto`) — qualquer
+tela nova que reescreva essas telas precisa preservar esses contratos ou atualizar o teste na mesma
+mudança, explicando o motivo.
+
+**Achados corrigidos ao longo do plano** (revisão do controlador task a task, ver ledger para o
+detalhe completo):
+
+- `caminhoInternoSeguro` aceitava `"/\t/evil.com"` (tab/CR/LF removido pelo parser de URL vira
+  `//evil.com`) — corrigido resolvendo com `new URL` e comparando `origin`, nunca mais por
+  `startsWith` de string.
+- `<Link><Botao></Link>` (botão dentro de âncora, HTML inválido) apareceu em várias listas —
+  eliminado com `classesDeBotao()`, a mesma função de classe que `Botao` usa, aplicada direto no
+  `className` do `Link`.
+- Imagem principal do detalhe de produto e miniatura do carrinho sem `width`/`height` (salto de
+  layout) — corrigido na T13, junto com alvos de toque abaixo de 44px no cabeçalho mobile
+  (`h-10`/`h-9` → `h-11`, e o link da marca sem altura mínima → `min-h-11`).
+- Reset global de `src/index.css` fora de `@layer base` vencia os utilitários do Tailwind v4 no
+  build (margens/centralização sumindo em 1920px) — corrigido movendo o reset para dentro da
+  camada.
+
+**Bundle:** JS foi de ~419,78 kB para 577,66 kB (+37,6%), CSS de ~22,38 kB para ~36,74 kB — acima do
+teto de 15% que o plano pedia para justificar. A maior parte é GSAP (entrou na T4, +19% sozinho,
+usado no cabeçalho, hero e ScrollTrigger da home) somado ao Tailwind convivendo com CSS legado até a
+T14 remover o legado. Nenhum code-splitting foi tentado: está fora do escopo desta refatoração e o
+plano não pedia performance de carregamento além de `width`/`height` em imagem e `loading="lazy"`
+fora da primeira dobra — ambos verificados.
+
+**T13 — verificação visual e de dado de teste (2026-09-16).** Autorizado pelo proprietário: 1
+usuário `t13-visual@exemplo.local` promovido a ADMIN via `npm run seed:admin --confirm-target=...`,
+1 categoria, 3 produtos com imagem, 1 endereço, 1 pedido, criados pela API local (não por SQL cru,
+não por `POST /auth/register` — evita disparar email real). Percorridas 15 rotas em 375/768/1280/1920
+sem sessão e com sessão: nenhuma rolagem horizontal, um único `<main>` por página, `prefers-reduced-
+motion` confirmado (hero em opacidade/posição final, sem transform). Todo o dado de teste foi
+removido ao final (estoque devolvido, linhas apagadas na ordem de FK, arquivos de imagem apagados do
+`UPLOAD_DIR`), com confirmação do proprietário antes de rodar.
+
+**T14 — limpeza e fechamento (2026-09-16).** Removidos `src/styles/tokens.css`,
+`src/components/primitivos.tsx`, `src/components/primitivos.css` e `src/pages/layout-de-autenticacao.css`
+(a última tela que os usava, `RotaProtegida`, foi migrada para Tailwind). `src/motion/tokens.ts`
+perdeu `cartaoInterativo` e `transicaoRapida` (sem importador); `sacudir`, `listaContainer`,
+`listaItem`, `DURACAO`, `CURVA` e `transicaoEntrada` continuam vivos — usados pelas 6 telas de
+autenticação e pelo layout de autenticação. Varredura de classe/variável CSS confirmou nenhum resto
+de `--cor-*`/`--espaco-*`/`--raio-*` ou `className` legado antes de cada remoção. `tsc -b`, `npm
+test` (103/103), `npm run build` e `npm run lint` (mesmos 19 avisos pré-existentes de
+`set-state-in-effect`/`exhaustive-deps`, nenhum novo) limpos ao final.
+
+## Home pública — Task 7, 2026-09-15
+
+TelaInicial recebe cliente e compõe Hero, FaixaDeCategorias, Vitrine e Beneficios. No catálogo usa a ordem padrão; Menores preços pede preco/asc, ambas com limite 8 via listarProdutos. useVitrine tem AbortController e descarte de resposta antiga; falha ou lista vazia oculta só a vitrine. Não depende de useSessao.
+
+Animações via useGsap: hero 0,4s e ScrollTrigger nas seções; ResizeObserver recalcula posições após mudança da altura dos dados, com cleanup no desmonte. Movimento reduzido mantém conteúdo visível. O CSS antigo da home foi removido; App.tsx mudou apenas para passar cliente.
+
+Verificação: 80 testes, tsc/build OK; quatro larguras sem overflow, links e falha isolada conferidos por GET anônimo. JS 557,74 kB (+9,64% frente à T6); aviso >500 kB e um aviso de set-state-in-effect no hook novo. Reset global legado segue pendente para T14; a home usa flex/gap para não depender das margens sobrescritas.

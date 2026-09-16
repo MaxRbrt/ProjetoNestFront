@@ -1,34 +1,61 @@
 @import './styles/tema.css';
-@import './styles/tokens.css';
 
 /* ---------------------------------------------
    Base do documento
    Reset enxuto: só o que evita divergência entre navegadores. box-sizing em
    border-box para que borda de 2px não estoure larguras da grade.
+   Precisa ficar em @layer base: no Tailwind v4 os utilitários vivem em
+   @layer utilities, e qualquer regra sem camada vence todas as camadas,
+   seja qual for a especificidade. Fora da camada, `* { margin: 0 }` zerava
+   mx-auto, mt-* e mb-* em todas as telas novas — o catálogo ficava colado à
+   esquerda em 1920px sem nenhum erro de build.
+   As cores e a fonte do body vêm das variáveis do @theme (tema.css), a
+   única fonte de tokens desde a remoção de styles/tokens.css.
    --------------------------------------------- */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
 
-* {
-  margin: 0;
-}
+  * {
+    margin: 0;
+  }
 
-body {
-  font-family: var(--fonte-texto);
-  background: var(--cor-fundo);
-  color: var(--cor-tinta);
-  -webkit-font-smoothing: antialiased;
-  line-height: 1.5;
-}
+  body {
+    font-family: var(--font-texto);
+    background: var(--color-fundo);
+    color: var(--color-tinta);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
 
-button,
-input {
-  font: inherit;
-}
+  button,
+  input {
+    font: inherit;
+  }
 
-a {
-  color: inherit;
+  a {
+    color: inherit;
+  }
+
+  /* ---------------------------------------------
+     Respeito à preferência de movimento reduzido
+     Quem pediu menos movimento continua recebendo a mudança de estado, só
+     sem deslocamento: a informação não pode depender da animação. Cobre
+     transições e animações de CSS (utilitários do Tailwind inclusive); GSAP
+     é contido por gsap.matchMedia() em useGsap, e o Motion pelas próprias
+     telas.
+     --------------------------------------------- */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }

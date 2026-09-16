@@ -3,17 +3,9 @@ import { Link } from 'react-router-dom';
 import type { ApiClient } from '../../api/cliente';
 import { ApiError } from '../../api/cliente';
 import { removerCategoria } from '../../api/catalogo-admin';
-import { Aviso, Botao } from '../../components/primitivos';
+import { Aviso, Botao, classesDeBotao } from '../../ui/indice';
 import { useListaDeCategoriasAdmin } from '../../hooks/use-lista-de-categorias-admin';
 import { Paginacao } from '../products/paginacao';
-// ---------------------------------------------
-// CSS compartilhado com a listagem de produtos
-// Reaproveita .admin-produtos__cabecalho, .admin-tabela e .admin-tabela__acoes
-// já definidas lá — mesmo layout de tabela, então o mesmo CSS. O import é
-// explícito de propósito: sem ele, renderizar esta tela isoladamente carrega a
-// árvore sem nenhum <style> dessas classes.
-// ---------------------------------------------
-import './tela-de-produtos-admin.css';
 
 interface PropsDaTela {
   cliente: ApiClient;
@@ -50,65 +42,100 @@ export function TelaDeCategoriasAdmin({ cliente }: PropsDaTela) {
 
   return (
     <div>
-      <div className="admin-produtos__cabecalho">
-        <h1>Categorias</h1>
-        <Link to="/admin/categorias/novo">
-          <Botao>Nova categoria</Botao>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-tinta">Categorias</h1>
+        <Link
+          to="/admin/categorias/novo"
+          className={classesDeBotao({ tamanho: 'pequeno' })}
+        >
+          Nova categoria
         </Link>
       </div>
 
-      {erro ? <Aviso>{erro}</Aviso> : null}
-      {erroDeRemocao ? <Aviso>{erroDeRemocao}</Aviso> : null}
+      {erro ? (
+        <div className="mt-4">
+          <Aviso>{erro}</Aviso>
+        </div>
+      ) : null}
+      {erroDeRemocao ? (
+        <div className="mt-4">
+          <Aviso>{erroDeRemocao}</Aviso>
+        </div>
+      ) : null}
 
       {!erro && carregando ? (
-        <p role="status">Carregando categorias…</p>
+        <p role="status" className="mt-4 text-sm text-tinta-media">
+          Carregando categorias…
+        </p>
       ) : null}
 
       {!erro && categorias && categorias.dados.length === 0 ? (
-        <p>Nenhuma categoria cadastrada.</p>
+        <p className="mt-4 text-sm text-tinta-media">
+          Nenhuma categoria cadastrada.
+        </p>
       ) : null}
 
       {!erro && categorias && categorias.dados.length > 0 ? (
-        <table className="admin-tabela">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th aria-label="Ações" />
-            </tr>
-          </thead>
-          <tbody>
-            {categorias.dados.map((categoria) => (
-              <tr key={categoria.id}>
-                <td>{categoria.nome}</td>
-                <td className="admin-tabela__acoes">
-                  <Link
-                    to={`/admin/categorias/${categoria.id}/editar`}
-                    aria-label={`Editar ${categoria.nome}`}
-                  >
-                    Editar
-                  </Link>
-                  <button
-                    type="button"
-                    aria-label={`Remover ${categoria.nome}`}
-                    onClick={() =>
-                      void removerComConfirmacao(categoria.id, categoria.nome)
-                    }
-                  >
-                    Remover
-                  </button>
-                </td>
+        <div
+          className="mt-4 overflow-x-auto rounded-card border border-borda"
+          role="region"
+          aria-label="Lista de categorias"
+          tabIndex={0}
+        >
+          <table className="w-full min-w-[420px] border-collapse text-sm">
+            <thead className="sticky top-0 bg-superficie">
+              <tr>
+                <th scope="col" className="px-4 py-3 text-left font-semibold">
+                  Nome
+                </th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">
+                  Ações
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {categorias.dados.map((categoria) => (
+                <tr key={categoria.id} className="odd:bg-superficie-sutil">
+                  <td className="px-4 py-3 text-tinta">{categoria.nome}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end gap-2">
+                      <Link
+                        to={`/admin/categorias/${categoria.id}/editar`}
+                        aria-label={`Editar ${categoria.nome}`}
+                        className={classesDeBotao({
+                          variante: 'fantasma',
+                          tamanho: 'pequeno',
+                        })}
+                      >
+                        Editar
+                      </Link>
+                      <Botao
+                        type="button"
+                        variante="perigo"
+                        tamanho="pequeno"
+                        aria-label={`Remover ${categoria.nome}`}
+                        onClick={() =>
+                          void removerComConfirmacao(
+                            categoria.id,
+                            categoria.nome,
+                          )
+                        }
+                      >
+                        Remover
+                      </Botao>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : null}
 
       {categorias ? (
         <Paginacao
           pagina={categorias.pagina}
-          totalDePaginas={
-            Math.ceil(categorias.total / categorias.limite) || 1
-          }
+          totalDePaginas={Math.ceil(categorias.total / categorias.limite) || 1}
           aoMudar={setPagina}
         />
       ) : null}

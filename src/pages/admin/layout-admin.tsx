@@ -1,39 +1,89 @@
-import { NavLink, Outlet } from 'react-router-dom';
-import type { ApiClient } from '../../api/cliente';
-import { Cabecalho } from '../../layout/cabecalho';
-import './layout-admin.css';
+import { NavLink, Outlet, Link } from 'react-router-dom';
+import { useSessao } from '../../auth/contexto-de-sessao';
 
-interface PropsDoLayoutAdmin {
-  cliente: ApiClient;
-}
+const LINKS = [
+  { para: '/admin', rotulo: 'Dashboard', fim: true },
+  { para: '/admin/produtos', rotulo: 'Produtos', fim: false },
+  { para: '/admin/categorias', rotulo: 'Categorias', fim: false },
+  { para: '/admin/pedidos', rotulo: 'Pedidos', fim: false },
+] as const;
 
 // ---------------------------------------------
 // Casca do painel administrativo
-// O cabeçalho principal continua igual ao resto da aplicação — só a subnav
-// abaixo dele é exclusiva do painel. Outlet renderiza a rota filha, para que
-// dashboard, produtos e categorias não precisem remontar este layout cada
-// uma por conta própria.
+// Não monta o Cabecalho da loja: o painel tem topo e navegação próprios, sem
+// busca de catálogo nem link de conta. Barra lateral fixa em lg; no mobile a
+// mesma navegação vira uma faixa horizontal rolável abaixo do topo. Único
+// <main id="conteudo"> do painel, com o mesmo link "Pular para o conteúdo"
+// que o LayoutDaLoja oferece na loja.
 // ---------------------------------------------
-export function LayoutAdmin({ cliente }: PropsDoLayoutAdmin) {
+export function LayoutAdmin() {
+  const { usuario, sair } = useSessao();
+
   return (
-    <>
-      <Cabecalho cliente={cliente} />
-      <div className="painel-admin">
+    <div className="flex min-h-screen flex-col bg-fundo">
+      <a
+        href="#conteudo"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-card focus:bg-white focus:px-4 focus:py-2 focus:text-tinta focus:shadow-carta-media"
+      >
+        Pular para o conteúdo
+      </a>
+
+      <header className="flex items-center justify-between gap-4 border-b border-borda bg-superficie px-4 py-3 lg:px-6">
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-pequeno bg-marca text-sm font-bold text-white">
+            NX
+          </span>
+          <span className="text-sm font-semibold text-tinta">Painel</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <Link
+            to="/"
+            className="flex min-h-11 items-center rounded-pequeno text-sm text-tinta-media hover:text-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento lg:min-h-0"
+          >
+            Ver loja
+          </Link>
+          {usuario ? (
+            <span className="hidden text-sm text-tinta-media sm:inline">
+              {usuario.email}
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void sair()}
+            className="flex min-h-11 items-center rounded-pequeno text-sm font-medium text-tinta-media hover:text-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento lg:min-h-0"
+          >
+            Sair
+          </button>
+        </div>
+      </header>
+
+      <div className="flex flex-1 flex-col lg:flex-row">
         <nav
-          className="painel-admin__subnav"
           aria-label="Navegação do painel admin"
+          className="flex gap-1 overflow-x-auto border-b border-borda bg-superficie px-4 py-2 lg:w-56 lg:shrink-0 lg:flex-col lg:gap-1 lg:border-b-0 lg:border-r lg:p-3"
         >
-          <NavLink to="/admin" end>
-            Dashboard
-          </NavLink>
-          <NavLink to="/admin/produtos">Produtos</NavLink>
-          <NavLink to="/admin/categorias">Categorias</NavLink>
-          <NavLink to="/admin/pedidos">Pedidos</NavLink>
+          {LINKS.map((link) => (
+            <NavLink
+              key={link.para}
+              to={link.para}
+              end={link.fim}
+              className={({ isActive }) =>
+                `flex min-h-11 shrink-0 items-center rounded-pequeno px-3 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento lg:min-h-0 ${
+                  isActive
+                    ? 'bg-acento-suave text-acento-escuro'
+                    : 'text-tinta-media hover:bg-superficie-sutil hover:text-tinta'
+                }`
+              }
+            >
+              {link.rotulo}
+            </NavLink>
+          ))}
         </nav>
-        <main className="painel-admin__conteudo">
+
+        <main id="conteudo" className="flex-1 p-4 lg:p-8">
           <Outlet />
         </main>
       </div>
-    </>
+    </div>
   );
 }

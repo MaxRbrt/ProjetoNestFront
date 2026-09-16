@@ -3,9 +3,9 @@ import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ApiError } from '../api/cliente';
 import { useSessao } from '../auth/contexto-de-sessao';
-import { Aviso, Botao, Campo } from '../components/primitivos';
 import { sacudir } from '../motion/tokens';
 import { useAnimacaoDeErro } from '../motion/use-animacao-de-erro';
+import { Aviso, Botao, Campo } from '../ui/indice';
 import { caminhoInternoSeguro } from '../utils/caminho-seguro';
 import { LayoutDeAutenticacao } from './layout-de-autenticacao';
 
@@ -71,7 +71,7 @@ export function TelaDeEntrada() {
       subtitulo="Acesse sua conta para acompanhar seus pedidos."
     >
       <motion.form
-        className="formulario__campos"
+        className="flex flex-col gap-4"
         onSubmit={aoEnviar}
         variants={sacudir}
         animate={controleDoErro}
@@ -112,14 +112,20 @@ export function TelaDeEntrada() {
           {enviando ? 'Entrando…' : 'Entrar'}
         </Botao>
 
-        <Link className="formulario__link" to="/esqueci-senha">
+        <Link
+          className="text-sm font-semibold text-acento hover:underline underline-offset-4"
+          to="/esqueci-senha"
+        >
           Esqueceu sua senha?
         </Link>
       </motion.form>
 
-      <p className="formulario__rodape">
+      <p className="text-center text-sm text-tinta-suave">
         Ainda não tem conta?{' '}
-        <Link className="formulario__link" to="/cadastrar">
+        <Link
+          className="font-semibold text-acento hover:underline underline-offset-4"
+          to="/cadastrar"
+        >
           Cadastre-se
         </Link>
       </p>

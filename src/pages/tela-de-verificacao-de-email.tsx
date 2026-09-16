@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ApiError, type ApiClient } from '../api/cliente';
-import { Aviso } from '../components/primitivos';
+import { Aviso } from '../ui/indice';
 import { LayoutDeAutenticacao } from './layout-de-autenticacao';
 
 interface PropsDaTela {
@@ -38,7 +38,8 @@ export function TelaDeVerificacaoDeEmail({ cliente }: PropsDaTela) {
   const [parametros] = useSearchParams();
   const token = lerTokenDoFragmento() ?? parametros.get('token');
 
-  const [situacao, setSituacao] = useState<SituacaoDaVerificacao>('verificando');
+  const [situacao, setSituacao] =
+    useState<SituacaoDaVerificacao>('verificando');
   const [erro, setErro] = useState<string | null>(null);
   const jaEnviou = useRef(false);
 
@@ -72,7 +73,11 @@ export function TelaDeVerificacaoDeEmail({ cliente }: PropsDaTela) {
   if (situacao === 'verificando') {
     return (
       <LayoutDeAutenticacao titulo="Verificando">
-        <p className="formulario__rodape" role="status" aria-live="polite">
+        <p
+          className="text-center text-sm text-tinta-suave"
+          role="status"
+          aria-live="polite"
+        >
           Confirmando seu email…
         </p>
       </LayoutDeAutenticacao>
@@ -85,8 +90,11 @@ export function TelaDeVerificacaoDeEmail({ cliente }: PropsDaTela) {
         <Aviso tipo="sucesso">
           Sua conta está verificada. Agora você já pode entrar.
         </Aviso>
-        <p className="formulario__rodape">
-          <Link className="formulario__link" to="/entrar">
+        <p className="text-center text-sm text-tinta-suave">
+          <Link
+            className="font-semibold text-acento hover:underline underline-offset-4"
+            to="/entrar"
+          >
             Ir para a entrada
           </Link>
         </p>
@@ -97,13 +105,19 @@ export function TelaDeVerificacaoDeEmail({ cliente }: PropsDaTela) {
   return (
     <LayoutDeAutenticacao titulo="Não deu certo">
       <Aviso>{erro}</Aviso>
-      <p className="formulario__rodape">
+      <p className="text-center text-sm text-tinta-suave">
         O link pode ter expirado ou já ter sido usado.{' '}
-        <Link className="formulario__link" to="/reenviar-verificacao">
+        <Link
+          className="font-semibold text-acento hover:underline underline-offset-4"
+          to="/reenviar-verificacao"
+        >
           Pedir um novo link
         </Link>
         {' · '}
-        <Link className="formulario__link" to="/entrar">
+        <Link
+          className="font-semibold text-acento hover:underline underline-offset-4"
+          to="/entrar"
+        >
           Voltar para a entrada
         </Link>
       </p>

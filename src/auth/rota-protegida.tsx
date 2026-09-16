@@ -34,13 +34,17 @@ export function RotaProtegida({ children }: PropsDaRotaProtegida) {
 // ---------------------------------------------
 export function TelaDeVerificacao() {
   return (
-    <div className="verificacao" role="status" aria-live="polite">
-      <span className="verificacao__pontos" aria-hidden="true">
-        <span className="verificacao__ponto" />
-        <span className="verificacao__ponto" />
-        <span className="verificacao__ponto" />
+    <div
+      className="flex min-h-screen flex-col items-center justify-center gap-4 bg-fundo"
+      role="status"
+      aria-live="polite"
+    >
+      <span className="flex gap-2" aria-hidden="true">
+        <span className="size-2.5 animate-pulsar-ponto rounded-pilula bg-acento" />
+        <span className="size-2.5 animate-pulsar-ponto rounded-pilula bg-acento [animation-delay:150ms]" />
+        <span className="size-2.5 animate-pulsar-ponto rounded-pilula bg-acento [animation-delay:300ms]" />
       </span>
-      <span className="verificacao__texto">Verificando sessão…</span>
+      <span className="text-sm text-tinta-suave">Verificando sessão…</span>
     </div>
   );
 }

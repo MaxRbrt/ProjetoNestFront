@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { ApiClient } from '../../api/cliente';
 import { ApiError } from '../../api/cliente';
 import {
@@ -7,8 +7,7 @@ import {
   buscarCategoria,
   criarCategoria,
 } from '../../api/catalogo-admin';
-import { Aviso, Botao, Campo } from '../../components/primitivos';
-import './tela-de-formulario-de-produto-admin.css';
+import { Aviso, Botao, Campo, classesDeBotao } from '../../ui/indice';
 
 interface PropsDaTela {
   cliente: ApiClient;
@@ -75,21 +74,38 @@ export function TelaDeFormularioDeCategoriaAdmin({ cliente }: PropsDaTela) {
   }
 
   return (
-    <div>
-      <h1>{emEdicao ? 'Editar categoria' : 'Nova categoria'}</h1>
+    <div className="max-w-xl">
+      <h1 className="text-2xl font-bold text-tinta">
+        {emEdicao ? 'Editar categoria' : 'Nova categoria'}
+      </h1>
 
-      {erro ? <Aviso>{erro}</Aviso> : null}
+      {erro ? (
+        <div className="mt-4">
+          <Aviso>{erro}</Aviso>
+        </div>
+      ) : null}
 
-      <form className="admin-form" onSubmit={aoSalvar}>
+      <form
+        className="mt-6 flex flex-col gap-4 rounded-card border border-borda bg-superficie p-5 shadow-carta sm:p-6"
+        onSubmit={aoSalvar}
+      >
         <Campo
           rotulo="Nome"
           value={nome}
           onChange={(evento) => setNome(evento.target.value)}
           required
         />
-        <Botao type="submit" carregando={salvando}>
-          Salvar
-        </Botao>
+        <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+          <Link
+            to="/admin/categorias"
+            className={classesDeBotao({ variante: 'fantasma' })}
+          >
+            Cancelar
+          </Link>
+          <Botao type="submit" carregando={salvando}>
+            Salvar
+          </Botao>
+        </div>
       </form>
     </div>
   );

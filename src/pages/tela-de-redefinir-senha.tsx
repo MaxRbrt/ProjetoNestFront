@@ -2,9 +2,9 @@ import { motion } from 'motion/react';
 import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ApiError, type ApiClient } from '../api/cliente';
-import { Aviso, Botao, Campo } from '../components/primitivos';
 import { sacudir } from '../motion/tokens';
 import { useAnimacaoDeErro } from '../motion/use-animacao-de-erro';
+import { Aviso, Botao, Campo } from '../ui/indice';
 import { LayoutDeAutenticacao } from './layout-de-autenticacao';
 
 interface PropsDaTela {
@@ -60,7 +60,9 @@ function lerTokenDoFragmento(): string | null {
 // ---------------------------------------------
 export function TelaDeRedefinirSenha({ cliente }: PropsDaTela) {
   const [parametros] = useSearchParams();
-  const [token] = useState(() => lerTokenDoFragmento() ?? parametros.get('token'));
+  const [token] = useState(
+    () => lerTokenDoFragmento() ?? parametros.get('token'),
+  );
 
   const [novaSenha, setNovaSenha] = useState('');
   const [erro, setErro] = useState<string | null>(null);
@@ -104,8 +106,11 @@ export function TelaDeRedefinirSenha({ cliente }: PropsDaTela) {
             ? 'O link pode ter expirado ou já ter sido usado.'
             : 'O link de redefinição está incompleto.'}
         </Aviso>
-        <p className="formulario__rodape">
-          <Link className="formulario__link" to="/esqueci-senha">
+        <p className="text-center text-sm text-tinta-suave">
+          <Link
+            className="font-semibold text-acento hover:underline underline-offset-4"
+            to="/esqueci-senha"
+          >
             Pedir um novo link
           </Link>
         </p>
@@ -119,8 +124,11 @@ export function TelaDeRedefinirSenha({ cliente }: PropsDaTela) {
         <Aviso tipo="sucesso">
           Sua senha foi alterada. Agora você já pode entrar com ela.
         </Aviso>
-        <p className="formulario__rodape">
-          <Link className="formulario__link" to="/entrar">
+        <p className="text-center text-sm text-tinta-suave">
+          <Link
+            className="font-semibold text-acento hover:underline underline-offset-4"
+            to="/entrar"
+          >
             Ir para a entrada
           </Link>
         </p>
@@ -134,7 +142,7 @@ export function TelaDeRedefinirSenha({ cliente }: PropsDaTela) {
       subtitulo="Escolha uma nova senha para sua conta."
     >
       <motion.form
-        className="formulario__campos"
+        className="flex flex-col gap-4"
         onSubmit={aoEnviar}
         variants={sacudir}
         animate={controleDoErro}

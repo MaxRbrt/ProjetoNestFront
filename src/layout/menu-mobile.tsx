@@ -81,7 +81,7 @@ export function MenuMobile({
             type="button"
             aria-label="Fechar menu"
             onClick={aoFechar}
-            className="flex h-9 w-9 items-center justify-center rounded-pequeno text-tinta-media hover:bg-superficie-sutil hover:text-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
+            className="flex h-11 w-11 items-center justify-center rounded-pequeno text-tinta-media hover:bg-superficie-sutil hover:text-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
           >
             <span aria-hidden="true">✕</span>
           </button>

@@ -1,11 +1,11 @@
-import { formatarCentavos } from '../../utils/dinheiro';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ApiClient } from '../../api/cliente';
+import type { Pedido } from '../../api/pedidos';
 import { useMeusPedidos } from '../../hooks/use-meus-pedidos';
-import { Aviso, BadgeDeSituacao } from '../../components/primitivos';
 import { Paginacao } from '../products/paginacao';
-import './tela-de-meus-pedidos.css';
+import { Aviso, EtiquetaDeSituacao } from '../../ui/indice';
+import { formatarCentavos } from '../../utils/dinheiro';
 
 interface PropsDaTela {
   cliente: ApiClient;
@@ -26,61 +26,50 @@ const ROTULO_DA_SITUACAO: Record<string, string> = {
 
 // ---------------------------------------------
 // Listagem de pedidos do cliente
-// Ao trocar de página, a tabela da página anterior fica visível e
-// esmaecida (aria-busy) em vez de sumir — sem isso o usuário veria a lista
-// piscar para o texto de carregamento a cada clique de paginação.
+// Ao trocar de página, a lista da página anterior fica visível e esmaecida
+// (aria-busy) em vez de sumir — sem isso o usuário veria a lista piscar
+// para o texto de carregamento a cada clique de paginação.
 // ---------------------------------------------
 export function TelaDeMeusPedidos({ cliente }: PropsDaTela) {
   const [pagina, setPagina] = useState(1);
   const { pedidos, carregando, erro } = useMeusPedidos(cliente, pagina);
 
   return (
-    <section className="tela-meus-pedidos">
-      <h1>Meus pedidos</h1>
+    <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
+      <h1 className="text-2xl font-bold tracking-tight text-tinta sm:text-3xl">
+        Meus pedidos
+      </h1>
 
-      {erro ? <Aviso>{erro}</Aviso> : null}
+      {erro ? (
+        <div className="mt-6">
+          <Aviso tipo="erro">{erro}</Aviso>
+        </div>
+      ) : null}
 
       {!erro && carregando && !pedidos ? (
-        <p role="status">Carregando pedidos…</p>
+        <p role="status" className="mt-6 text-tinta-media">
+          Carregando pedidos…
+        </p>
       ) : null}
 
       {!erro && !carregando && pedidos && pedidos.dados.length === 0 ? (
-        <p>
+        <p className="mt-6 text-tinta-media">
           Você ainda não fez nenhum pedido.{' '}
-          <Link to="/produtos">Ver produtos</Link>
+          <Link to="/produtos" className="font-semibold text-acento underline">
+            Ver produtos
+          </Link>
         </p>
       ) : null}
 
       {!erro && pedidos && pedidos.dados.length > 0 ? (
-        <table className="tela-meus-pedidos__tabela" aria-busy={carregando}>
-          <thead>
-            <tr>
-              <th>Pedido</th>
-              <th>Data</th>
-              <th>Total</th>
-              <th>Situação</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pedidos.dados.map((pedido) => (
-              <tr key={pedido.id}>
-                <td>
-                  <Link to={`/pedidos/${pedido.id}`}>#{pedido.id}</Link>
-                </td>
-                <td>{FORMATADOR_DE_DATA.format(new Date(pedido.criadoEm))}</td>
-                <td>{formatarCentavos(pedido.totalEmCentavos)}</td>
-                <td>
-                  <BadgeDeSituacao
-                    situacao={pedido.situacao}
-                    rotulo={
-                      ROTULO_DA_SITUACAO[pedido.situacao] ?? pedido.situacao
-                    }
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ul
+          aria-busy={carregando}
+          className={`mt-6 flex flex-col gap-3 ${carregando ? 'opacity-60' : ''}`}
+        >
+          {pedidos.dados.map((pedido) => (
+            <CartaoDePedido key={pedido.id} pedido={pedido} />
+          ))}
+        </ul>
       ) : null}
 
       {pedidos ? (
@@ -90,6 +79,37 @@ export function TelaDeMeusPedidos({ cliente }: PropsDaTela) {
           aoMudar={setPagina}
         />
       ) : null}
-    </section>
+    </div>
+  );
+}
+
+interface PropsDoCartao {
+  pedido: Pedido;
+}
+
+function CartaoDePedido({ pedido }: PropsDoCartao) {
+  return (
+    <li>
+      <Link
+        to={`/pedidos/${pedido.id}`}
+        className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-borda bg-superficie p-4 shadow-carta hover:border-borda-forte"
+      >
+        <div className="flex flex-col gap-1">
+          <span className="font-semibold text-tinta">#{pedido.id}</span>
+          <span className="text-sm text-tinta-media">
+            {FORMATADOR_DE_DATA.format(new Date(pedido.criadoEm))}
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="font-semibold text-tinta">
+            {formatarCentavos(pedido.totalEmCentavos)}
+          </span>
+          <EtiquetaDeSituacao
+            situacao={pedido.situacao}
+            rotulo={ROTULO_DA_SITUACAO[pedido.situacao] ?? pedido.situacao}
+          />
+        </div>
+      </Link>
+    </li>
   );
 }

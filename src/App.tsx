@@ -105,7 +105,7 @@ function AreaProtegida() {
 
       <Route element={<AreaComCarrinho />}>
         <Route element={<LayoutDaLoja cliente={apiClient} />}>
-          <Route path="/" element={<TelaInicial />} />
+          <Route path="/" element={<TelaInicial cliente={apiClient} />} />
           <Route
             path="/produtos"
             element={<TelaDeProdutos cliente={apiClient} />}
@@ -150,7 +150,7 @@ function AreaProtegida() {
         <Route
           element={
             <RotaAdmin>
-              <LayoutAdmin cliente={apiClient} />
+              <LayoutAdmin />
             </RotaAdmin>
           }
         >

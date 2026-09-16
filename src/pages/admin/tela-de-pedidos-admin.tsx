@@ -8,10 +8,8 @@ import {
   type SituacaoDoPedido,
 } from '../../api/pedidos';
 import type { Paginado } from '../../api/produtos';
-import { Aviso, BadgeDeSituacao, Botao } from '../../components/primitivos';
+import { Aviso, Botao, EtiquetaDeSituacao, Selecao } from '../../ui/indice';
 import { Paginacao } from '../products/paginacao';
-import './tela-de-produtos-admin.css';
-import './tela-de-pedidos-admin.css';
 
 const SITUACOES: Record<SituacaoDoPedido, string> = {
   PENDENTE: 'Pendente',
@@ -70,16 +68,17 @@ export function TelaDePedidosAdmin({ cliente }: { cliente: ApiClient }) {
   }
 
   return (
-    <section className="admin-pedidos">
-      <div className="admin-pedidos__cabecalho">
+    <section>
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1>Pedidos</h1>
-          <p>Acompanhe os pedidos e registre pagamentos ou cancelamentos.</p>
+          <h1 className="text-2xl font-bold text-tinta">Pedidos</h1>
+          <p className="mt-1 text-sm text-tinta-media">
+            Acompanhe os pedidos e registre pagamentos ou cancelamentos.
+          </p>
         </div>
-        <div className="admin-pedidos__filtro">
-          <label htmlFor="situacao-dos-pedidos">Situação</label>
-          <select
-            id="situacao-dos-pedidos"
+        <div className="w-48">
+          <Selecao
+            rotulo="Situação"
             value={situacao ?? ''}
             onChange={(evento) => {
               const nova = new URLSearchParams(consulta);
@@ -96,7 +95,7 @@ export function TelaDePedidosAdmin({ cliente }: { cliente: ApiClient }) {
                 {rotulo}
               </option>
             ))}
-          </select>
+          </Selecao>
         </div>
       </div>
       <ListaDePedidos
@@ -159,13 +158,19 @@ function ListaDePedidos({
     };
   }, [cliente, pagina, situacao, tentativa]);
 
-  if (carregando) return <p role="status">Carregando pedidos…</p>;
+  if (carregando)
+    return (
+      <p role="status" className="mt-6 text-sm text-tinta-media">
+        Carregando pedidos…
+      </p>
+    );
   if (erro)
     return (
-      <>
+      <div className="mt-6 flex flex-col items-start gap-3">
         <Aviso>{erro}</Aviso>
         <Botao
           variante="secundario"
+          tamanho="pequeno"
           onClick={() => {
             setCarregando(true);
             setErro(null);
@@ -174,60 +179,77 @@ function ListaDePedidos({
         >
           Tentar novamente
         </Botao>
-      </>
+      </div>
     );
   if (!pedidos) return null;
   if (pedidos.dados.length === 0)
     return (
-      <>
-        <p>
+      <div className="mt-6 flex flex-col items-start gap-3">
+        <p className="text-sm text-tinta-media">
           {situacao
             ? 'Nenhum pedido encontrado nesta situação.'
             : 'Nenhum pedido encontrado.'}
         </p>
         {pagina > 1 ? (
-          <Botao variante="secundario" onClick={() => aoMudarPagina(1)}>
+          <Botao
+            variante="secundario"
+            tamanho="pequeno"
+            onClick={() => aoMudarPagina(1)}
+          >
             Voltar à primeira página
           </Botao>
         ) : null}
-      </>
+      </div>
     );
 
   return (
     <>
-      <p className="admin-pedidos__contagem" role="status">
+      <p className="mt-6 text-sm text-tinta-media" role="status">
         {pedidos.total}{' '}
         {pedidos.total === 1 ? 'pedido encontrado' : 'pedidos encontrados'}
       </p>
       <div
-        className="admin-pedidos__rolagem"
+        className="mt-3 overflow-x-auto rounded-card border border-borda"
         role="region"
         aria-label="Lista de pedidos"
         tabIndex={0}
       >
-        <table className="admin-tabela">
-          <thead>
+        <table className="w-full min-w-[640px] border-collapse text-sm">
+          <thead className="sticky top-0 bg-superficie">
             <tr>
-              <th scope="col">Pedido</th>
-              <th scope="col">Data</th>
-              <th scope="col">Total</th>
-              <th scope="col">Situação</th>
+              <th scope="col" className="px-4 py-3 text-left font-semibold">
+                Pedido
+              </th>
+              <th scope="col" className="px-4 py-3 text-left font-semibold">
+                Data
+              </th>
+              <th scope="col" className="px-4 py-3 text-right font-semibold">
+                Total
+              </th>
+              <th scope="col" className="px-4 py-3 text-left font-semibold">
+                Situação
+              </th>
             </tr>
           </thead>
           <tbody>
             {pedidos.dados.map((pedido) => (
-              <tr key={pedido.id}>
-                <td>
+              <tr key={pedido.id} className="odd:bg-superficie-sutil">
+                <td className="px-4 py-3">
                   <Link
                     to={`/admin/pedidos/${pedido.id}${consulta ? `?${consulta}` : ''}`}
+                    className="font-medium text-acento-escuro hover:underline"
                   >
                     #{pedido.id}
                   </Link>
                 </td>
-                <td>{FORMATADOR_DE_DATA.format(new Date(pedido.criadoEm))}</td>
-                <td>{formatarCentavos(pedido.totalEmCentavos)}</td>
-                <td>
-                  <BadgeDeSituacao
+                <td className="px-4 py-3 text-tinta">
+                  {FORMATADOR_DE_DATA.format(new Date(pedido.criadoEm))}
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums text-tinta">
+                  {formatarCentavos(pedido.totalEmCentavos)}
+                </td>
+                <td className="px-4 py-3">
+                  <EtiquetaDeSituacao
                     situacao={pedido.situacao}
                     rotulo={SITUACOES[pedido.situacao]}
                   />

@@ -1,17 +1,24 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import type { ApiClient } from '../../api/cliente';
 import { ApiError } from '../../api/cliente';
 import {
   atualizarEndereco,
   criarEndereco,
-  listarEnderecos,
   removerEndereco,
   type DadosDeEndereco,
   type Endereco,
 } from '../../api/enderecos';
-import { Aviso, Botao, Campo } from '../../components/primitivos';
+import { useEnderecos } from '../../hooks/use-enderecos';
+import { Trilha } from '../../layout/trilha';
+import {
+  Aviso,
+  Botao,
+  Campo,
+  Esqueleto,
+  Etiqueta,
+  Selecao,
+} from '../../ui/indice';
 import { UFS_VALIDAS } from './ufs';
-import './tela-de-enderecos.css';
 
 interface PropsDaTela {
   cliente: ApiClient;
@@ -34,45 +41,21 @@ const FORMULARIO_VAZIO: DadosDeEndereco = {
 // Lista inteira de uma vez, sem paginação — ninguém cadastra dezenas de
 // endereços de entrega. Um único formulário serve tanto para criar quanto
 // para editar: idEmEdicao null significa criação, um número significa qual
-// endereço está sendo editado. Erro de carga (listar) e erro de ação
-// (salvar/remover) ficam separados, mesmo critério já usado no carrinho e no
-// detalhe de pedido — um erro ao salvar não pode esconder a lista que o
-// usuário precisa ver para tentar de novo.
+// endereço está sendo editado. Erro de carga (listar, via useEnderecos) e
+// erro de ação (salvar/remover/marcar principal) ficam separados, mesmo
+// critério já usado no carrinho e no detalhe de pedido — um erro ao salvar
+// não pode esconder a lista que o usuário precisa ver para tentar de novo.
+// Marcar principal e remover agem direto na lista, sem abrir o formulário.
 // ---------------------------------------------
 export function TelaDeEnderecos({ cliente }: PropsDaTela) {
-  const [enderecos, setEnderecos] = useState<Endereco[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  const [erroDeCarga, setErroDeCarga] = useState<string | null>(null);
+  const { enderecos, carregando, erroDeCarga, recarregar } =
+    useEnderecos(cliente);
   const [erroDeAcao, setErroDeAcao] = useState<string | null>(null);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [idEmEdicao, setIdEmEdicao] = useState<number | null>(null);
   const [formulario, setFormulario] =
     useState<DadosDeEndereco>(FORMULARIO_VAZIO);
   const [salvando, setSalvando] = useState(false);
-
-  function recarregar(signal?: AbortSignal) {
-    setCarregando(true);
-    setErroDeCarga(null);
-    return listarEnderecos(cliente, signal)
-      .then((lista) => setEnderecos(lista))
-      .catch((falha: unknown) => {
-        if (falha instanceof DOMException && falha.name === 'AbortError')
-          return;
-        setErroDeCarga(
-          falha instanceof ApiError
-            ? falha.message
-            : 'Não foi possível carregar seus endereços.',
-        );
-      })
-      .finally(() => setCarregando(false));
-  }
-
-  useEffect(() => {
-    const controlador = new AbortController();
-    void recarregar(controlador.signal);
-    return () => controlador.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cliente]);
 
   function abrirParaCriar() {
     setIdEmEdicao(null);
@@ -151,192 +134,282 @@ export function TelaDeEnderecos({ cliente }: PropsDaTela) {
   }
 
   return (
-    <section className="tela-enderecos">
-      <h1>Meus endereços</h1>
+    <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
+      <Trilha
+        itens={[{ rotulo: 'Início', para: '/' }, { rotulo: 'Meus endereços' }]}
+      />
 
-      {erroDeCarga ? <Aviso>{erroDeCarga}</Aviso> : null}
+      <h1 className="mt-4 text-2xl font-bold tracking-tight text-tinta sm:text-3xl">
+        Meus endereços
+      </h1>
 
-      {!erroDeCarga && carregando ? (
-        <p role="status">Carregando endereços…</p>
+      {erroDeCarga ? (
+        <div className="mt-6">
+          <Aviso tipo="erro">{erroDeCarga}</Aviso>
+        </div>
       ) : null}
+
+      {!erroDeCarga && carregando ? <EsqueletoDaLista /> : null}
 
       {!erroDeCarga && !carregando ? (
         <>
-          {erroDeAcao ? <Aviso>{erroDeAcao}</Aviso> : null}
-
-          {enderecos.length === 0 && !mostrarFormulario ? (
-            <p className="tela-enderecos__vazio">
-              Você ainda não tem nenhum endereço cadastrado.
-            </p>
+          {erroDeAcao ? (
+            <div className="mt-6">
+              <Aviso tipo="erro">{erroDeAcao}</Aviso>
+            </div>
           ) : null}
 
-          <ul className="tela-enderecos__lista">
-            {enderecos.map((endereco) => (
-              <li key={endereco.id} className="tela-enderecos__item">
-                <div>
-                  <strong>{endereco.apelido}</strong>
-                  {endereco.principal ? (
-                    <span className="tela-enderecos__selo">Principal</span>
-                  ) : null}
-                  <p>
-                    {endereco.destinatario} — {endereco.logradouro},{' '}
-                    {endereco.numero}
-                    {endereco.complemento ? `, ${endereco.complemento}` : ''}
-                    {' — '}
-                    {endereco.bairro}, {endereco.cidade}/{endereco.uf}
-                  </p>
-                </div>
-                <div className="tela-enderecos__acoes">
-                  {!endereco.principal ? (
-                    <button
-                      type="button"
-                      className="acao-de-texto acao-de-texto--neutra"
-                      onClick={() => void aoMarcarPrincipal(endereco.id)}
-                    >
-                      Tornar principal
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="acao-de-texto acao-de-texto--neutra"
-                    onClick={() => abrirParaEditar(endereco)}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    className="acao-de-texto"
-                    onClick={() => void aoRemover(endereco.id)}
-                  >
-                    Remover
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+          {enderecos.length === 0 && !mostrarFormulario ? (
+            <div className="mt-6 flex flex-col items-center gap-4 rounded-card border border-borda bg-superficie-sutil py-16 text-center">
+              <p className="text-tinta-media">
+                Você ainda não tem nenhum endereço cadastrado.
+              </p>
+              <Botao type="button" onClick={abrirParaCriar}>
+                Cadastrar endereço
+              </Botao>
+            </div>
+          ) : null}
 
-          {!mostrarFormulario ? (
-            <Botao type="button" onClick={abrirParaCriar}>
-              Adicionar endereço
-            </Botao>
-          ) : (
-            <form className="tela-enderecos__formulario" onSubmit={aoSalvar}>
-              <h2>
-                {idEmEdicao === null ? 'Novo endereço' : 'Editar endereço'}
-              </h2>
+          {enderecos.length > 0 ? (
+            <ul className="mt-6 flex flex-col gap-3">
+              {enderecos.map((endereco) => (
+                <CartaoDeEndereco
+                  key={endereco.id}
+                  endereco={endereco}
+                  aoMarcarPrincipal={() => void aoMarcarPrincipal(endereco.id)}
+                  aoEditar={() => abrirParaEditar(endereco)}
+                  aoRemover={() => void aoRemover(endereco.id)}
+                />
+              ))}
+            </ul>
+          ) : null}
 
-              <Campo
-                rotulo="Apelido"
-                placeholder="Casa, Trabalho..."
-                value={formulario.apelido}
-                onChange={(e) =>
-                  setFormulario({ ...formulario, apelido: e.target.value })
-                }
-                required
-              />
-              <Campo
-                rotulo="Destinatário"
-                value={formulario.destinatario}
-                onChange={(e) =>
-                  setFormulario({
-                    ...formulario,
-                    destinatario: e.target.value,
-                  })
-                }
-                required
-              />
-              <Campo
-                rotulo="CEP"
-                placeholder="00000-000"
-                value={formulario.cep}
-                onChange={(e) =>
-                  setFormulario({ ...formulario, cep: e.target.value })
-                }
-                required
-              />
-              <Campo
-                rotulo="Logradouro"
-                value={formulario.logradouro}
-                onChange={(e) =>
-                  setFormulario({ ...formulario, logradouro: e.target.value })
-                }
-                required
-              />
-              <Campo
-                rotulo="Número"
-                placeholder="123 ou S/N"
-                value={formulario.numero}
-                onChange={(e) =>
-                  setFormulario({ ...formulario, numero: e.target.value })
-                }
-                required
-              />
-              <Campo
-                rotulo="Complemento"
-                value={formulario.complemento ?? ''}
-                onChange={(e) =>
-                  setFormulario({
-                    ...formulario,
-                    complemento: e.target.value,
-                  })
-                }
-              />
-              <Campo
-                rotulo="Bairro"
-                value={formulario.bairro}
-                onChange={(e) =>
-                  setFormulario({ ...formulario, bairro: e.target.value })
-                }
-                required
-              />
-              <Campo
-                rotulo="Cidade"
-                value={formulario.cidade}
-                onChange={(e) =>
-                  setFormulario({ ...formulario, cidade: e.target.value })
-                }
-                required
-              />
-              <div className="campo">
-                <label className="campo__rotulo" htmlFor="uf">
-                  UF
-                </label>
-                <select
-                  id="uf"
-                  className="campo__entrada"
-                  value={formulario.uf}
-                  onChange={(e) =>
-                    setFormulario({ ...formulario, uf: e.target.value })
-                  }
-                  required
-                >
-                  <option value="" disabled>
-                    Selecione
-                  </option>
-                  {UFS_VALIDAS.map((uf) => (
-                    <option key={uf} value={uf}>
-                      {uf}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          {!mostrarFormulario && enderecos.length > 0 ? (
+            <div className="mt-6">
+              <Botao type="button" onClick={abrirParaCriar}>
+                Adicionar endereço
+              </Botao>
+            </div>
+          ) : null}
 
-              <div className="tela-enderecos__botoes-formulario">
-                <Botao type="submit" carregando={salvando}>
-                  Salvar
-                </Botao>
-                <Botao
-                  type="button"
-                  variante="secundario"
-                  onClick={() => setMostrarFormulario(false)}
-                >
-                  Cancelar
-                </Botao>
-              </div>
-            </form>
-          )}
+          {mostrarFormulario ? (
+            <FormularioDeEndereco
+              idEmEdicao={idEmEdicao}
+              formulario={formulario}
+              aoAlterar={setFormulario}
+              salvando={salvando}
+              aoSalvar={aoSalvar}
+              aoCancelar={() => setMostrarFormulario(false)}
+            />
+          ) : null}
         </>
       ) : null}
-    </section>
+    </div>
+  );
+}
+
+interface PropsDoCartao {
+  endereco: Endereco;
+  aoMarcarPrincipal: () => void;
+  aoEditar: () => void;
+  aoRemover: () => void;
+}
+
+function CartaoDeEndereco({
+  endereco,
+  aoMarcarPrincipal,
+  aoEditar,
+  aoRemover,
+}: PropsDoCartao) {
+  return (
+    <li className="flex flex-col gap-3 rounded-card border border-borda bg-superficie p-4 shadow-carta sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <strong className="font-semibold text-tinta">
+            {endereco.apelido}
+          </strong>
+          {endereco.principal ? (
+            <Etiqueta tom="sucesso">Principal</Etiqueta>
+          ) : null}
+        </div>
+        <p className="mt-1 text-sm text-tinta-media">
+          {endereco.destinatario} — {endereco.logradouro}, {endereco.numero}
+          {endereco.complemento ? `, ${endereco.complemento}` : ''}
+          {' — '}
+          {endereco.bairro}, {endereco.cidade}/{endereco.uf}
+        </p>
+      </div>
+      <div className="flex flex-shrink-0 flex-wrap gap-2">
+        {!endereco.principal ? (
+          <Botao
+            variante="fantasma"
+            tamanho="pequeno"
+            type="button"
+            onClick={aoMarcarPrincipal}
+          >
+            Tornar principal
+          </Botao>
+        ) : null}
+        <Botao
+          variante="fantasma"
+          tamanho="pequeno"
+          type="button"
+          onClick={aoEditar}
+        >
+          Editar
+        </Botao>
+        <Botao
+          variante="perigo"
+          tamanho="pequeno"
+          type="button"
+          onClick={aoRemover}
+        >
+          Remover
+        </Botao>
+      </div>
+    </li>
+  );
+}
+
+interface PropsDoFormulario {
+  idEmEdicao: number | null;
+  formulario: DadosDeEndereco;
+  aoAlterar: (formulario: DadosDeEndereco) => void;
+  salvando: boolean;
+  aoSalvar: (evento: FormEvent<HTMLFormElement>) => void;
+  aoCancelar: () => void;
+}
+
+// ---------------------------------------------
+// Formulário de endereço
+// Painel destacado que serve tanto criação quanto edição. Os campos ficam
+// agrupados como no restante do checkout: CEP e número em linha curta,
+// logradouro em linha larga, cidade e UF lado a lado — uma coluna só no
+// mobile.
+// ---------------------------------------------
+function FormularioDeEndereco({
+  idEmEdicao,
+  formulario,
+  aoAlterar,
+  salvando,
+  aoSalvar,
+  aoCancelar,
+}: PropsDoFormulario) {
+  return (
+    <form
+      className="mt-6 flex flex-col gap-4 rounded-card border border-borda bg-superficie p-5 shadow-carta"
+      onSubmit={aoSalvar}
+    >
+      <h2 className="text-lg font-semibold text-tinta">
+        {idEmEdicao === null ? 'Novo endereço' : 'Editar endereço'}
+      </h2>
+
+      <Campo
+        rotulo="Apelido"
+        placeholder="Casa, Trabalho..."
+        value={formulario.apelido}
+        onChange={(e) => aoAlterar({ ...formulario, apelido: e.target.value })}
+        required
+      />
+      <Campo
+        rotulo="Destinatário"
+        value={formulario.destinatario}
+        onChange={(e) =>
+          aoAlterar({ ...formulario, destinatario: e.target.value })
+        }
+        required
+      />
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[10rem_1fr]">
+        <Campo
+          rotulo="CEP"
+          placeholder="00000-000"
+          value={formulario.cep}
+          onChange={(e) => aoAlterar({ ...formulario, cep: e.target.value })}
+          required
+        />
+        <Campo
+          rotulo="Número"
+          placeholder="123 ou S/N"
+          value={formulario.numero}
+          onChange={(e) => aoAlterar({ ...formulario, numero: e.target.value })}
+          required
+        />
+      </div>
+
+      <Campo
+        rotulo="Logradouro"
+        value={formulario.logradouro}
+        onChange={(e) =>
+          aoAlterar({ ...formulario, logradouro: e.target.value })
+        }
+        required
+      />
+
+      <Campo
+        rotulo="Complemento"
+        value={formulario.complemento ?? ''}
+        onChange={(e) =>
+          aoAlterar({ ...formulario, complemento: e.target.value })
+        }
+      />
+      <Campo
+        rotulo="Bairro"
+        value={formulario.bairro}
+        onChange={(e) => aoAlterar({ ...formulario, bairro: e.target.value })}
+        required
+      />
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_8rem]">
+        <Campo
+          rotulo="Cidade"
+          value={formulario.cidade}
+          onChange={(e) => aoAlterar({ ...formulario, cidade: e.target.value })}
+          required
+        />
+        <Selecao
+          rotulo="UF"
+          value={formulario.uf}
+          onChange={(e) => aoAlterar({ ...formulario, uf: e.target.value })}
+          required
+        >
+          <option value="" disabled>
+            Selecione
+          </option>
+          {UFS_VALIDAS.map((uf) => (
+            <option key={uf} value={uf}>
+              {uf}
+            </option>
+          ))}
+        </Selecao>
+      </div>
+
+      <div className="flex gap-3">
+        <Botao type="submit" carregando={salvando}>
+          Salvar
+        </Botao>
+        <Botao type="button" variante="secundario" onClick={aoCancelar}>
+          Cancelar
+        </Botao>
+      </div>
+    </form>
+  );
+}
+
+// ---------------------------------------------
+// Esqueleto da lista de endereços
+// Espelha o cartão real (apelido, linha de endereço, ações) para a página não
+// saltar de altura quando os dados chegam.
+// ---------------------------------------------
+function EsqueletoDaLista() {
+  return (
+    <div
+      role="status"
+      aria-label="Carregando endereços"
+      className="mt-6 flex flex-col gap-3"
+    >
+      <Esqueleto className="h-24 w-full" />
+      <Esqueleto className="h-24 w-full" />
+    </div>
   );
 }

@@ -2,7 +2,8 @@ import type { Transition, Variants } from 'motion/react';
 
 // ---------------------------------------------
 // Durações e curvas do movimento
-// Espelham os tokens de CSS de propósito: componentes animados pelo Motion e
+// Espelham as curvas do tema (--ease-saida/--ease-entrada em
+// src/styles/tema.css) de propósito: componentes animados pelo Motion e
 // elementos animados por transição de CSS precisam ter o mesmo tempo, senão a
 // interface parece ter duas personalidades. A curva desacelera até parar,
 // acompanhando as superfícies arredondadas — nenhum movimento trava seco.
@@ -17,11 +18,6 @@ export const CURVA = {
   saida: [0.22, 1, 0.36, 1],
   entrada: [0.4, 0, 0.2, 1],
 } as const;
-
-export const transicaoRapida: Transition = {
-  duration: DURACAO.feedback,
-  ease: CURVA.saida,
-};
 
 export const transicaoEntrada: Transition = {
   duration: DURACAO.transicao,
@@ -62,15 +58,4 @@ export const sacudir: Variants = {
     x: [0, -8, 8, -5, 0],
     transition: { duration: DURACAO.transicao, ease: CURVA.entrada },
   },
-};
-
-// ---------------------------------------------
-// Elevação no repouso e no apontamento
-// Usada em cartões clicáveis: a elevação sinaliza que o elemento responde ao
-// toque, e o deslocamento vertical é mínimo para não empurrar a grade inteira
-// na percepção do usuário.
-// ---------------------------------------------
-export const cartaoInterativo: Variants = {
-  repouso: { y: 0 },
-  apontado: { y: -4, transition: transicaoRapida },
 };

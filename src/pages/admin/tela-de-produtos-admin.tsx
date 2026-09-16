@@ -1,13 +1,12 @@
-import { formatarCentavos } from '../../utils/dinheiro';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ApiClient } from '../../api/cliente';
 import { ApiError } from '../../api/cliente';
 import { removerProduto } from '../../api/catalogo-admin';
-import { Aviso, Botao } from '../../components/primitivos';
+import { formatarCentavos } from '../../utils/dinheiro';
+import { Aviso, Botao, classesDeBotao } from '../../ui/indice';
 import { useListaDeProdutosAdmin } from '../../hooks/use-lista-de-produtos-admin';
 import { Paginacao } from '../products/paginacao';
-import './tela-de-produtos-admin.css';
 
 interface PropsDaTela {
   cliente: ApiClient;
@@ -47,59 +46,103 @@ export function TelaDeProdutosAdmin({ cliente }: PropsDaTela) {
 
   return (
     <div>
-      <div className="admin-produtos__cabecalho">
-        <h1>Produtos</h1>
-        <Link to="/admin/produtos/novo">
-          <Botao>Novo produto</Botao>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-tinta">Produtos</h1>
+        <Link
+          to="/admin/produtos/novo"
+          className={classesDeBotao({ tamanho: 'pequeno' })}
+        >
+          Novo produto
         </Link>
       </div>
 
-      {erro ? <Aviso>{erro}</Aviso> : null}
-      {erroDeRemocao ? <Aviso>{erroDeRemocao}</Aviso> : null}
+      {erro ? (
+        <div className="mt-4">
+          <Aviso>{erro}</Aviso>
+        </div>
+      ) : null}
+      {erroDeRemocao ? (
+        <div className="mt-4">
+          <Aviso>{erroDeRemocao}</Aviso>
+        </div>
+      ) : null}
 
-      {!erro && carregando ? <p role="status">Carregando produtos…</p> : null}
+      {!erro && carregando ? (
+        <p role="status" className="mt-4 text-sm text-tinta-media">
+          Carregando produtos…
+        </p>
+      ) : null}
 
       {!erro && produtos && produtos.dados.length === 0 ? (
-        <p>Nenhum produto cadastrado.</p>
+        <p className="mt-4 text-sm text-tinta-media">
+          Nenhum produto cadastrado.
+        </p>
       ) : null}
 
       {!erro && produtos && produtos.dados.length > 0 ? (
-        <table className="admin-tabela">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Preço</th>
-              <th>Estoque</th>
-              <th aria-label="Ações" />
-            </tr>
-          </thead>
-          <tbody>
-            {produtos.dados.map((produto) => (
-              <tr key={produto.id}>
-                <td>{produto.nome}</td>
-                <td>{formatarCentavos(produto.precoEmCentavos)}</td>
-                <td>{produto.estoque}</td>
-                <td className="admin-tabela__acoes">
-                  <Link
-                    to={`/admin/produtos/${produto.id}/editar`}
-                    aria-label={`Editar ${produto.nome}`}
-                  >
-                    Editar
-                  </Link>
-                  <button
-                    type="button"
-                    aria-label={`Remover ${produto.nome}`}
-                    onClick={() =>
-                      void removerComConfirmacao(produto.id, produto.nome)
-                    }
-                  >
-                    Remover
-                  </button>
-                </td>
+        <div
+          className="mt-4 overflow-x-auto rounded-card border border-borda"
+          role="region"
+          aria-label="Lista de produtos"
+          tabIndex={0}
+        >
+          <table className="w-full min-w-[560px] border-collapse text-sm">
+            <thead className="sticky top-0 bg-superficie">
+              <tr>
+                <th scope="col" className="px-4 py-3 text-left font-semibold">
+                  Nome
+                </th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">
+                  Preço
+                </th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">
+                  Estoque
+                </th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">
+                  Ações
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {produtos.dados.map((produto) => (
+                <tr key={produto.id} className="odd:bg-superficie-sutil">
+                  <td className="px-4 py-3 text-tinta">{produto.nome}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-tinta">
+                    {formatarCentavos(produto.precoEmCentavos)}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums text-tinta">
+                    {produto.estoque}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end gap-2">
+                      <Link
+                        to={`/admin/produtos/${produto.id}/editar`}
+                        aria-label={`Editar ${produto.nome}`}
+                        className={classesDeBotao({
+                          variante: 'fantasma',
+                          tamanho: 'pequeno',
+                        })}
+                      >
+                        Editar
+                      </Link>
+                      <Botao
+                        type="button"
+                        variante="perigo"
+                        tamanho="pequeno"
+                        aria-label={`Remover ${produto.nome}`}
+                        onClick={() =>
+                          void removerComConfirmacao(produto.id, produto.nome)
+                        }
+                      >
+                        Remover
+                      </Botao>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : null}
 
       {produtos ? (

@@ -74,7 +74,7 @@ export function Cabecalho({ cliente }: PropsDoCabecalho) {
               type="button"
               aria-label="Abrir menu"
               onClick={() => setMenuAberto(true)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-pequeno text-white lg:hidden"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-pequeno text-white lg:hidden"
             >
               <span aria-hidden="true" className="text-xl leading-none">
                 ☰
@@ -83,7 +83,7 @@ export function Cabecalho({ cliente }: PropsDoCabecalho) {
 
             <Link
               to="/"
-              className="flex shrink-0 items-center gap-2 text-white"
+              className="flex min-h-11 shrink-0 items-center gap-2 text-white"
             >
               <span className="rounded-pequeno bg-acento px-2.5 py-1 text-sm font-extrabold">
                 NX
@@ -133,7 +133,7 @@ export function Cabecalho({ cliente }: PropsDoCabecalho) {
               <Link
                 to="/carrinho"
                 aria-label={`Carrinho, ${totalDeItens} ${totalDeItens === 1 ? 'item' : 'itens'}`}
-                className="relative flex h-10 w-10 items-center justify-center rounded-pequeno text-white"
+                className="relative flex h-11 w-11 items-center justify-center rounded-pequeno text-white"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

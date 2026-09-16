@@ -2,9 +2,9 @@ import { motion } from 'motion/react';
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiError, type ApiClient } from '../api/cliente';
-import { Aviso, Botao, Campo } from '../components/primitivos';
 import { sacudir } from '../motion/tokens';
 import { useAnimacaoDeErro } from '../motion/use-animacao-de-erro';
+import { Aviso, Botao, Campo } from '../ui/indice';
 import { LayoutDeAutenticacao } from './layout-de-autenticacao';
 
 interface PropsDaTela {
@@ -54,8 +54,11 @@ export function TelaDeReenviarVerificacao({ cliente }: PropsDaTela) {
         <Aviso tipo="sucesso">
           Se os dados forem elegíveis, você receberá as instruções por email.
         </Aviso>
-        <p className="formulario__rodape">
-          <Link className="formulario__link" to="/entrar">
+        <p className="text-center text-sm text-tinta-suave">
+          <Link
+            className="font-semibold text-acento hover:underline underline-offset-4"
+            to="/entrar"
+          >
             Voltar para a entrada
           </Link>
         </p>
@@ -69,7 +72,7 @@ export function TelaDeReenviarVerificacao({ cliente }: PropsDaTela) {
       subtitulo="Informe seu email para receber um novo link de confirmação."
     >
       <motion.form
-        className="formulario__campos"
+        className="flex flex-col gap-4"
         onSubmit={aoEnviar}
         variants={sacudir}
         animate={controleDoErro}
@@ -93,9 +96,12 @@ export function TelaDeReenviarVerificacao({ cliente }: PropsDaTela) {
         </Botao>
       </motion.form>
 
-      <p className="formulario__rodape">
+      <p className="text-center text-sm text-tinta-suave">
         Já confirmou?{' '}
-        <Link className="formulario__link" to="/entrar">
+        <Link
+          className="font-semibold text-acento hover:underline underline-offset-4"
+          to="/entrar"
+        >
           Entrar
         </Link>
       </p>
