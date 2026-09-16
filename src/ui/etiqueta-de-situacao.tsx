@@ -28,7 +28,7 @@ export function EtiquetaDeSituacao({
 
   return (
     <span
-      className={`inline-flex items-center rounded-pilula px-2.5 py-1 text-xs font-semibold ${tom}`}
+      className={`inline-flex items-center rounded-pilula px-3 py-1.5 text-base font-semibold ${tom}`}
     >
       {rotulo}
     </span>

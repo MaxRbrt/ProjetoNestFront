@@ -21,12 +21,13 @@ import { TelaDeProdutosAdmin } from './pages/admin/tela-de-produtos-admin';
 import { TelaDePedidosAdmin } from './pages/admin/tela-de-pedidos-admin';
 import { TelaInicial } from './pages/tela-inicial';
 import { TelaDeEntrada } from './pages/tela-de-entrada';
-import { TelaDeDetalheDoProduto } from './pages/products/tela-de-detalhe-do-produto';
-import { TelaDeProdutos } from './pages/products/tela-de-produtos';
+import { TelaDeDetalheDoProduto } from './pages/produtos/tela-de-detalhe-do-produto';
+import { TelaDeProdutos } from './pages/produtos/tela-de-produtos';
 import { TelaDeCarrinho } from './pages/carrinho/tela-de-carrinho';
 import { TelaDeMeusPedidos } from './pages/pedidos/tela-de-meus-pedidos';
 import { TelaDeEnderecos } from './pages/enderecos/tela-de-enderecos';
 import { TelaDeDetalheDoPedido } from './pages/pedidos/tela-de-detalhe-do-pedido';
+import { TelaDePerfil } from './pages/tela-de-perfil';
 import { TelaDeCadastro } from './pages/tela-de-cadastro';
 import { TelaDeVerificacaoDeEmail } from './pages/tela-de-verificacao-de-email';
 import { TelaDeEsqueciSenha } from './pages/tela-de-esqueci-senha';
@@ -104,7 +105,7 @@ function AreaProtegida() {
       />
 
       <Route element={<AreaComCarrinho />}>
-        <Route element={<LayoutDaLoja cliente={apiClient} />}>
+        <Route element={<LayoutDaLoja />}>
           <Route path="/" element={<TelaInicial cliente={apiClient} />} />
           <Route
             path="/produtos"
@@ -135,6 +136,14 @@ function AreaProtegida() {
             element={
               <RotaProtegida>
                 <TelaDeEnderecos cliente={apiClient} />
+              </RotaProtegida>
+            }
+          />
+          <Route
+            path="/perfil"
+            element={
+              <RotaProtegida>
+                <TelaDePerfil />
               </RotaProtegida>
             }
           />

@@ -74,7 +74,7 @@ export function TelaDeVerificacaoDeEmail({ cliente }: PropsDaTela) {
     return (
       <LayoutDeAutenticacao titulo="Verificando">
         <p
-          className="text-center text-sm text-tinta-suave"
+          className="text-center text-base text-tinta-media"
           role="status"
           aria-live="polite"
         >
@@ -90,9 +90,9 @@ export function TelaDeVerificacaoDeEmail({ cliente }: PropsDaTela) {
         <Aviso tipo="sucesso">
           Sua conta está verificada. Agora você já pode entrar.
         </Aviso>
-        <p className="text-center text-sm text-tinta-suave">
+        <p className="text-center text-base text-tinta-media">
           <Link
-            className="font-semibold text-acento hover:underline underline-offset-4"
+            className="inline-flex min-h-12 items-center font-semibold text-acento underline underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
             to="/entrar"
           >
             Ir para a entrada
@@ -105,17 +105,17 @@ export function TelaDeVerificacaoDeEmail({ cliente }: PropsDaTela) {
   return (
     <LayoutDeAutenticacao titulo="Não deu certo">
       <Aviso>{erro}</Aviso>
-      <p className="text-center text-sm text-tinta-suave">
+      <p className="text-center text-base text-tinta-media">
         O link pode ter expirado ou já ter sido usado.{' '}
         <Link
-          className="font-semibold text-acento hover:underline underline-offset-4"
+          className="inline-flex min-h-12 items-center font-semibold text-acento underline underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
           to="/reenviar-verificacao"
         >
           Pedir um novo link
         </Link>
         {' · '}
         <Link
-          className="font-semibold text-acento hover:underline underline-offset-4"
+          className="inline-flex min-h-12 items-center font-semibold text-acento underline underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
           to="/entrar"
         >
           Voltar para a entrada

@@ -9,7 +9,7 @@ interface PropsDoBotao extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const VARIANTES = {
   primario:
-    'bg-acento text-white shadow-carta hover:bg-acento-escuro hover:shadow-carta-media focus-visible:outline-acento',
+    'bg-acento text-white hover:bg-acento-escuro focus-visible:outline-acento',
   secundario:
     'bg-superficie text-tinta border border-borda-forte hover:bg-superficie-sutil focus-visible:outline-marca',
   fantasma:
@@ -19,9 +19,9 @@ const VARIANTES = {
 } as const;
 
 const TAMANHOS = {
-  pequeno: 'h-9 px-3 text-sm',
-  medio: 'h-11 px-6 text-[0.95rem]',
-  grande: 'h-13 px-8 text-base',
+  pequeno: 'min-h-12 px-3 py-2 text-base',
+  medio: 'min-h-13 px-6 py-3 text-lg',
+  grande: 'min-h-14 px-8 py-3 text-lg',
 } as const;
 
 export interface OpcoesDeClassesDeBotao {
@@ -46,7 +46,7 @@ export function classesDeBotao({
   bloco = false,
   className = '',
 }: OpcoesDeClassesDeBotao = {}): string {
-  return `inline-flex items-center justify-center gap-2 rounded-card font-semibold transition-[background-color,box-shadow,transform] duration-150 ease-saida focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:bg-borda-forte disabled:text-tinta-suave disabled:shadow-none active:translate-y-px ${VARIANTES[variante]} ${TAMANHOS[tamanho]} ${bloco ? 'w-full' : ''} ${className}`;
+  return `inline-flex items-center justify-center gap-2 rounded-card text-center font-semibold leading-normal transition-colors duration-150 ease-saida focus-visible:outline-2 focus-visible:outline-offset-4 disabled:cursor-not-allowed disabled:bg-borda disabled:text-tinta-media active:brightness-90 ${VARIANTES[variante]} ${TAMANHOS[tamanho]} ${bloco ? 'w-full' : ''} ${className}`;
 }
 
 // ---------------------------------------------

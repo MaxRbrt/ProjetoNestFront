@@ -12,12 +12,15 @@ const TONS = {
 
 // ---------------------------------------------
 // Aviso
-// role="alert" faz o leitor de tela anunciar a mensagem assim que ela aparece,
+// role={tipo === 'erro' ? 'alert' : 'status'} faz o leitor de tela anunciar a mensagem assim que ela aparece,
 // sem esperar o usuário navegar até ela.
 // ---------------------------------------------
 export function Aviso({ tipo = 'erro', children }: PropsDoAviso) {
   return (
-    <p role="alert" className={`rounded-card border px-4 py-3 text-sm ${TONS[tipo]}`}>
+    <p
+      role={tipo === 'erro' ? 'alert' : 'status'}
+      className={`rounded-card border px-4 py-4 text-base leading-relaxed ${TONS[tipo]}`}
+    >
       {children}
     </p>
   );

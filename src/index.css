@@ -28,7 +28,8 @@
     background: var(--color-fundo);
     color: var(--color-tinta);
     -webkit-font-smoothing: antialiased;
-    line-height: 1.5;
+    font-size: 1.125rem;
+    line-height: 1.6;
   }
 
   button,

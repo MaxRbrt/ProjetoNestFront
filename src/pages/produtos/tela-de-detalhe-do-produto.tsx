@@ -14,9 +14,11 @@ import {
   Aviso,
   Botao,
   Campo,
+  Cartao,
   Esqueleto,
   Etiqueta,
   Preco,
+  classesDeBotao,
 } from '../../ui/indice';
 
 interface PropsDaTela {
@@ -121,7 +123,7 @@ function ConteudoDoProduto({
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <Trilha
         itens={[
           { rotulo: 'Início', para: '/' },
@@ -144,7 +146,7 @@ function ConteudoDoProduto({
           {naoEncontrado ? (
             <Link
               to="/produtos"
-              className="text-sm font-semibold text-acento underline underline-offset-4 hover:text-acento-escuro"
+              className={classesDeBotao({ variante: 'secundario' })}
             >
               Voltar para o catálogo
             </Link>
@@ -156,7 +158,7 @@ function ConteudoDoProduto({
         <EsqueletoDoProduto />
       ) : produto ? (
         <>
-          <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-12">
+          <div className="mt-6 grid grid-cols-1 items-start gap-8 lg:grid-cols-12 lg:gap-10">
             <div className="lg:col-span-7">
               {urlDaImagemPrincipal ? (
                 <img
@@ -165,31 +167,40 @@ function ConteudoDoProduto({
                   width={600}
                   height={600}
                   loading="eager"
-                  className="aspect-square w-full rounded-card border border-borda bg-superficie-sutil object-contain p-6"
+                  className="aspect-square max-h-[36rem] w-full rounded-card border border-borda bg-superficie object-contain p-8 shadow-carta"
                 />
               ) : (
                 <div
                   aria-hidden="true"
-                  className="flex aspect-square w-full items-center justify-center rounded-card border border-borda bg-superficie-sutil text-7xl font-extrabold text-marca"
+                  className="flex aspect-square max-h-[36rem] w-full items-center justify-center rounded-card border border-borda bg-superficie text-7xl font-bold text-marca/70 shadow-carta"
                 >
                   {produto.nome.charAt(0).toUpperCase()}
                 </div>
               )}
             </div>
 
-            <div className="lg:col-span-5">
-              <div className="flex flex-col gap-4 lg:sticky lg:top-24">
-                <h1 className="text-2xl font-bold tracking-tight text-tinta break-words sm:text-3xl">
-                  {produto.nome}
-                </h1>
+            <div className="lg:sticky lg:top-6 lg:col-span-5">
+              <Cartao className="flex flex-col gap-6">
+                <div className="flex flex-col gap-2">
+                  {categoria ? (
+                    <p className="text-base font-medium text-tinta-media">
+                      {categoria.nome}
+                    </p>
+                  ) : null}
+                  <h1 className="text-balance break-words text-2xl font-bold leading-tight tracking-tight text-tinta sm:text-3xl">
+                    {produto.nome}
+                  </h1>
+                </div>
 
-                <DisponibilidadeDoProduto produto={produto} />
-
-                <Preco centavos={produto.precoEmCentavos} tamanho="grande" />
+                <div className="flex flex-col gap-3 border-y border-borda py-5">
+                  <Preco centavos={produto.precoEmCentavos} tamanho="grande" />
+                  <DisponibilidadeDoProduto produto={produto} />
+                </div>
 
                 {produto.estoque > 0 ? (
                   <Campo
                     rotulo="Quantidade"
+                    name="quantidade"
                     type="number"
                     min={1}
                     max={Math.max(disponivel, 1)}
@@ -220,7 +231,7 @@ function ConteudoDoProduto({
                 </Botao>
 
                 {disponivel <= 0 ? (
-                  <p className="text-sm text-tinta-media">
+                  <p className="text-lg text-tinta-media">
                     {produto.estoque === 0
                       ? 'Este produto está esgotado.'
                       : `Você já tem no carrinho todo o estoque disponível (${produto.estoque} unidades).`}
@@ -230,18 +241,21 @@ function ConteudoDoProduto({
                 {confirmacao ? (
                   <Aviso tipo="sucesso">
                     Adicionado ao carrinho.{' '}
-                    <Link to="/carrinho" className="font-semibold underline">
+                    <Link
+                      to="/carrinho"
+                      className="font-semibold underline underline-offset-2 hover:text-acento-escuro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
+                    >
                       Ver carrinho
                     </Link>
                   </Aviso>
                 ) : null}
 
-                <p className="text-sm text-tinta-suave">
+                <p className="rounded-pequeno bg-superficie-sutil px-4 py-3 text-base leading-relaxed text-tinta-media">
                   O frete é calculado no carrinho, a partir do endereço
                   cadastrado — o valor depende do endereço de entrega, não só do
                   CEP.
                 </p>
-              </div>
+              </Cartao>
             </div>
           </div>
 
@@ -292,7 +306,7 @@ function DisponibilidadeDoProduto({ produto }: PropsDaDisponibilidade) {
     );
   }
   return (
-    <p className="text-sm text-tinta-media">
+    <p className="text-lg text-tinta-media">
       {produto.estoque} unidades em estoque
     </p>
   );
@@ -308,7 +322,7 @@ function EsqueletoDoProduto() {
     <div
       role="status"
       aria-label="Carregando produto"
-      className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-12"
+      className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10"
     >
       <div className="lg:col-span-7">
         <Esqueleto className="aspect-square w-full" />

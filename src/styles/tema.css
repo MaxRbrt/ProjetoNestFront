@@ -17,20 +17,20 @@
   --color-tinta-suave: #64748b;
 
   --color-borda: #e2e8f0;
-  --color-borda-forte: #cbd5e1;
+  --color-borda-forte: #64748b;
 
-  --color-acento: #ea580c;
-  --color-acento-escuro: #c2410c;
+  --color-acento: #c2410c;
+  --color-acento-escuro: #9a3412;
   --color-acento-suave: #fff7ed;
 
   --color-marca: #10233f;
   --color-marca-clara: #1e3a5f;
 
-  --color-sucesso: #16a34a;
+  --color-sucesso: #15803d;
   --color-sucesso-suave: #f0fdf4;
-  --color-erro: #dc2626;
+  --color-erro: #b91c1c;
   --color-erro-suave: #fef2f2;
-  --color-aviso: #ca8a04;
+  --color-aviso: #854d0e;
 
   --radius-card: 10px;
   --radius-grande: 16px;

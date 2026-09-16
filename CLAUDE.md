@@ -645,8 +645,8 @@ mudar nenhuma regra de negócio.
 
 | Pasta | Conteúdo |
 |---|---|
-| `src/ui/` | Design system: `Botao`/`classesDeBotao`, `Campo`, `Selecao`, `Etiqueta`, `EtiquetaDeSituacao`, `Aviso`, `Esqueleto`, `Preco`. Reexportado por `src/ui/indice.ts` — importar sempre de lá, nunca do arquivo individual. |
-| `src/layout/` | `LayoutDaLoja` (cabeçalho + rodapé + skip link + único `<main id="conteudo">` da loja pública), `Cabecalho`, `MenuMobile`, `Busca`, `Trilha`, `Rodape`. As rotas `/`, `/produtos`, `/produtos/:id`, `/carrinho`, `/pedidos`, `/pedidos/:id` e `/enderecos` vivem dentro dele; `/admin/*` usa `LayoutAdmin` (`src/pages/admin/layout-admin.tsx`), que **não** monta `Cabecalho` da loja. |
+| `src/ui/` | Design system: `Botao`/`classesDeBotao`, `Campo`, `Selecao`, `Etiqueta`, `EtiquetaDeSituacao`, `Aviso`, `Esqueleto`, `Preco`, `Cartao`. Reexportado por `src/ui/indice.ts` — importar sempre de lá, nunca do arquivo individual. |
+| `src/layout/` | `LayoutDaLoja` (cabeçalho + rodapé + skip link + único `<main id="conteudo">` da loja pública), `Cabecalho`, `CabecalhoDaPagina`, `Busca`, `Trilha`, `Rodape` (`MenuMobile` e `BarraDeCategorias` foram removidos em 2026-09-16 — ver seções da revisão 70+ e do refinamento visual). As rotas `/`, `/produtos`, `/produtos/:id`, `/carrinho`, `/pedidos`, `/pedidos/:id` e `/enderecos` vivem dentro dele; `/admin/*` usa `LayoutAdmin` (`src/pages/admin/layout-admin.tsx`), que **não** monta `Cabecalho` da loja. |
 | `src/sections/` | Seções da home pública: `Hero`, `FaixaDeCategorias`, `Vitrine`, `Beneficios`. |
 | `src/produtos/` | `CartaoDeProduto`, `GradeDeProdutos`, `Relacionados` (mesma categoria do produto atual). |
 | `src/hooks/use-gsap.ts` | Único ponto de entrada para animação GSAP — `gsap.context()` + `gsap.matchMedia()`, respeita `prefers-reduced-motion` automaticamente. |
@@ -721,3 +721,96 @@ TelaInicial recebe cliente e compõe Hero, FaixaDeCategorias, Vitrine e Benefici
 Animações via useGsap: hero 0,4s e ScrollTrigger nas seções; ResizeObserver recalcula posições após mudança da altura dos dados, com cleanup no desmonte. Movimento reduzido mantém conteúdo visível. O CSS antigo da home foi removido; App.tsx mudou apenas para passar cliente.
 
 Verificação: 80 testes, tsc/build OK; quatro larguras sem overflow, links e falha isolada conferidos por GET anônimo. JS 557,74 kB (+9,64% frente à T6); aviso >500 kB e um aviso de set-state-in-effect no hook novo. Reset global legado segue pendente para T14; a home usa flex/gap para não depender das margens sobrescritas.
+
+## Revisão de UX e acessibilidade para público 70+ — 2026-09-16
+
+Feita em duas partes: Codex implementou a maior parte e parou na revisão final; Claude conferiu,
+fechou as sobras e validou. Rotas, chamadas de API, autenticação e contratos não mudaram.
+
+**Padrão visual que passa a valer em toda tela nova:**
+
+- Texto de leitura com no mínimo 16px (`text-base`); campos e botões de busca em `text-lg`.
+  `text-xs`/`text-sm` não entram em tela de cliente (o admin ainda usa `text-sm` em tabelas).
+- Alvo de toque com no mínimo 48px (`min-h-12`/`min-h-13` em `Botao`, `Campo`, `Selecao` e links do
+  cabeçalho).
+- Ação sempre com texto; ícone só complementa (carrinho = ícone + "Carrinho (n)", busca = lupa +
+  "Buscar").
+- Laranja (`acento`) só em ação principal e item selecionado. Navegação usa a variante `fantasma`,
+  com o item atual marcado por `aria-[current=page]` (fundo `acento-suave` + sublinhado).
+- Foco sempre visível (`focus-visible:outline-2` + offset); branco sobre o navy do cabeçalho,
+  `marca` em campos sobre fundo claro. Contraste dos pares de tokens de `tema.css` medido: todos ≥4,5:1
+  para texto e ≥3:1 para borda de campo.
+
+**Cabeçalho (`src/layout/cabecalho.tsx`):** faixa discreta "Loja de demonstração — compras
+simuladas" → faixa navy com marca, busca larga e dois botões com borda ("Minha conta"/"Entrar na
+conta" e "Carrinho (n)") → faixa branca de navegação sempre visível (Catálogo, Meus pedidos, Meu
+perfil, Meus endereços, Painel admin quando ADMIN, "Sair da conta"). Sem dropdown e sem menu
+hambúrguer: no celular a navegação vira grade de 2 colunas. O email saiu do cabeçalho; no perfil
+fica oculto até clicar em "Mostrar email". `Busca` recebe `key={pathname + search}` para remontar e
+refletir a URL (remover busca, voltar no histórico, sair do catálogo) — não trocar por `useEffect`.
+
+**Telas:** perfil em blocos verticais; endereços em cartões com linhas separadas e botões
+"Editar"/"Excluir" visíveis (cancelar a edição devolve o foco ao `<h1>`); pedidos com data, situação,
+total e "Ver detalhes" separados; catálogo em uma coluna no celular, com filtro em diálogo que fecha
+com Escape e devolve o foco; carrinho com total e "Finalizar pedido" no mesmo bloco.
+
+**Armadilha corrigida:** `useLinhasDoCarrinho` tratava falha de rede como carrinho vazio. Agora só
+404 remove o produto da lista; qualquer outra falha mostra erro com "Tentar novamente" e esconde o
+checkout, para não finalizar pedido com preço parcial.
+
+**Sobras fechadas por Claude:** `EtiquetaDeSituacao` de `text-xs` para `text-base` (afeta também o
+admin); "Verificando sessão…" de `text-sm`/`tinta-suave` (4,3:1) para `text-lg`/`tinta-media`; home
+(`beneficios`, `faixa-de-categorias`, `vitrine`) sem `text-sm` e "Ver todos" com `min-h-12`.
+
+**Verificação:** `tsc -b` limpo, `npm run build` ok, `npm run lint` sem erros (só os avisos antigos
+de `set-state-in-effect`/`only-export-components`), `npm test` 108/108. No navegador, 320 a 1920px
+sem rolagem horizontal; na home, em 375 e 1366px, nenhum texto abaixo de 16px e nenhum alvo abaixo
+de 48px. A revisão adversarial do Codex sobre o conjunto não rodou por limite de uso da conta. Os
+pontos de risco (erro do carrinho, foco, vazamento de email para anônimo, contraste) foram revisados
+manualmente, sem achados. Capturas em `.superpowers/*-70mais.png`.
+
+## Refinamento visual da loja — 2026-09-16 (tarde)
+
+Continuação da revisão 70+: mesmo padrão de acessibilidade, com acabamento mais profissional e
+consistente entre as telas. Nenhuma lógica, rota, chamada de API ou contrato mudou.
+
+**Base visual nova:**
+
+- `index.html` carrega a Inter (Google Fonts, 400–700) — antes o tema declarava a fonte mas nunca a
+  carregava. `lang` corrigido de `en` para `pt-BR` e título para "NX Catálogo".
+- `src/ui/cartao.tsx` (`Cartao`): única superfície branca da loja (borda, `shadow-carta`,
+  `rounded-card`). `como` escolhe o elemento (section, li, nav…) para não perder semântica;
+  `espaco` = `normal` (p-5/sm:p-7), `compacto` ou `nenhum` (para cartões com lista interna dividida).
+- `src/layout/cabecalho-da-pagina.tsx` (`CabecalhoDaPagina`): trilha + h1 + descrição + ação
+  opcional à direita. Usado em catálogo, carrinho, pedidos, perfil e endereços. `refDoTitulo` dá
+  `tabIndex -1` ao h1 só quando a tela devolve o foco a ele (endereços).
+- `Preco` passou a usar `text-tinta`: o laranja fica só em ação principal, item selecionado e
+  destaques (faixa superior dos cartões de pagamento e de formulário de endereço).
+- Páginas de conta (pedidos, detalhe, perfil, endereços) todas em `max-w-4xl`.
+
+**Por tela:** cabeçalho sem a faixa de categorias (removido `barra-de-categorias.tsx`; categorias
+seguem na inicial e na lateral do catálogo — decisão aprovada pelo proprietário), e
+`Cabecalho`/`LayoutDaLoja` não recebem mais `cliente`. `GradeDeProdutos` ganhou `largura`
+(`com-lateral` = até 3 colunas, `total` = até 4) — vitrine e relacionados usam `total`, e
+relacionados exibe 4 (a busca continua pedindo 6, contrato amarrado no teste). Cartão de produto com
+etiqueta de estoque sobre a imagem (nomes alinhados na linha), preço e botão no rodapé, imagem 4:3 no
+celular. Filtro do catálogo em cartão fixo ao rolar, item atual com barra lateral laranja + peso.
+Detalhe do produto com painel fixo, categoria acima do título e preço/estoque entre divisórias.
+Carrinho com itens numa lista dentro de um só cartão, resumo fixo, rótulos sem repetição ("Endereço
+de entrega", "Forma de entrega"). Detalhe do pedido com itens e totais no mesmo cartão e "Voltar" em
+tom neutro. Pedidos com "Ver detalhes" à direita no desktop. Perfil com cartão "Sua conta" (atalhos
+para pedidos, endereços e catálogo). Endereços em grade de 2 colunas, "Adicionar endereço" no
+cabeçalho da página.
+
+**Verificação:** `tsc -b`, `npm run build`, `npm test` (108/108) e `npm run lint` (os mesmos 19
+avisos antigos) limpos. Capturas com API simulada por `page.route` (nenhum dado real) em 320, 390,
+768, 1366 e 1920px: nenhuma rolagem horizontal, nenhum texto abaixo de 16px, nenhum alvo abaixo de
+44px dentro do conteúdo; ordem do Tab logo → busca → conta → carrinho → navegação → conteúdo, com
+contorno visível em todos. No MCP do Playwright, `route` com glob gera `ReferenceError: URL is not
+defined` no sandbox — usar regex.
+
+**Ajustes finais do mesmo dia:** `src/assets/hero.png` (imagem roxa do template do Vite) foi
+removida; o hero usa uma caixa de encomenda em SVG inline com as cores da marca, e os botões do hero
+têm contorno de foco branco (laranja sobre `marca-clara` dá 2,2:1). A Inter segue vindo do Google
+Fonts de propósito: o frontend roda em Docker com `node_modules` num volume nomeado, e adicionar
+`@fontsource` no host quebraria o container até recriar o volume.

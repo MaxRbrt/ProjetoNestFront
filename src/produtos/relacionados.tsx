@@ -11,14 +11,15 @@ interface PropsDeRelacionados {
 }
 
 const LIMITE_DE_BUSCA = 6;
-const LIMITE_EXIBIDO = 5;
+const LIMITE_EXIBIDO = 4;
 
 // ---------------------------------------------
 // Relacionados por categoria
 // O critério é literal — mesma categoria, ordem do backend — por isso o
 // título fala "Da mesma categoria" em vez de sugerir uma recomendação
 // personalizada que este catálogo não calcula. Busca 6 para sobrar margem
-// depois de remover o próprio produto e corta em 5; se não sobrar nenhum
+// depois de remover o próprio produto e corta em 4 — uma linha cheia da
+// grade em largura total; se não sobrar nenhum
 // (categoria com um produto só) ou a leitura falhar, a seção inteira some —
 // nenhuma vitrine secundária vazia ou quebrada tem valor para quem só quer
 // comprar o produto principal.
@@ -76,7 +77,7 @@ export function Relacionados({
   }
 
   return (
-    <section aria-labelledby="relacionados-titulo" className="mt-12">
+    <section aria-labelledby="relacionados-titulo" className="mt-14 border-t border-borda pt-10">
       <h2
         id="relacionados-titulo"
         className="mb-5 text-xl font-bold tracking-tight text-tinta sm:text-2xl"
@@ -87,6 +88,7 @@ export function Relacionados({
         produtos={produtos}
         carregando={carregando}
         quantidadeDeEsqueletos={LIMITE_EXIBIDO}
+        largura="total"
       />
     </section>
   );

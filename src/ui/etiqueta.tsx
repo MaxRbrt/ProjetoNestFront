@@ -24,7 +24,7 @@ const TONS = {
 export function Etiqueta({ tom = 'neutro', children }: PropsDaEtiqueta) {
   return (
     <span
-      className={`inline-flex items-center rounded-pilula px-2.5 py-1 text-xs font-semibold ${TONS[tom]}`}
+      className={`inline-flex items-center rounded-pilula px-2.5 py-1 text-base font-semibold ${TONS[tom]}`}
     >
       {children}
     </span>

@@ -54,9 +54,9 @@ export function TelaDeReenviarVerificacao({ cliente }: PropsDaTela) {
         <Aviso tipo="sucesso">
           Se os dados forem elegíveis, você receberá as instruções por email.
         </Aviso>
-        <p className="text-center text-sm text-tinta-suave">
+        <p className="text-center text-base text-tinta-media">
           <Link
-            className="font-semibold text-acento hover:underline underline-offset-4"
+            className="inline-flex min-h-12 items-center font-semibold text-acento underline underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
             to="/entrar"
           >
             Voltar para a entrada
@@ -72,7 +72,7 @@ export function TelaDeReenviarVerificacao({ cliente }: PropsDaTela) {
       subtitulo="Informe seu email para receber um novo link de confirmação."
     >
       <motion.form
-        className="flex flex-col gap-4"
+        className="flex flex-col gap-6"
         onSubmit={aoEnviar}
         variants={sacudir}
         animate={controleDoErro}
@@ -86,6 +86,7 @@ export function TelaDeReenviarVerificacao({ cliente }: PropsDaTela) {
           name="email"
           placeholder="voce@exemplo.com"
           autoComplete="email"
+          spellCheck={false}
           value={email}
           onChange={(evento) => setEmail(evento.target.value)}
           required
@@ -96,10 +97,10 @@ export function TelaDeReenviarVerificacao({ cliente }: PropsDaTela) {
         </Botao>
       </motion.form>
 
-      <p className="text-center text-sm text-tinta-suave">
+      <p className="text-center text-base text-tinta-media">
         Já confirmou?{' '}
         <Link
-          className="font-semibold text-acento hover:underline underline-offset-4"
+          className="inline-flex min-h-12 items-center font-semibold text-acento underline underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
           to="/entrar"
         >
           Entrar

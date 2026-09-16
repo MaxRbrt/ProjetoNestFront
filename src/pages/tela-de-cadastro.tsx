@@ -57,10 +57,10 @@ export function TelaDeCadastro({ cliente }: PropsDaTela) {
         <Aviso tipo="sucesso">
           Se os dados forem elegíveis, você receberá as instruções por email.
         </Aviso>
-        <p className="text-center text-sm text-tinta-suave">
+        <p className="text-center text-base text-tinta-media">
           Já confirmou?{' '}
           <Link
-            className="font-semibold text-acento hover:underline underline-offset-4"
+            className="inline-flex min-h-12 items-center font-semibold text-acento underline underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
             to="/entrar"
           >
             Entrar
@@ -68,7 +68,7 @@ export function TelaDeCadastro({ cliente }: PropsDaTela) {
           {' · '}
           Não recebeu?{' '}
           <Link
-            className="font-semibold text-acento hover:underline underline-offset-4"
+            className="inline-flex min-h-12 items-center font-semibold text-acento underline underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
             to="/reenviar-verificacao"
           >
             Reenviar
@@ -81,10 +81,10 @@ export function TelaDeCadastro({ cliente }: PropsDaTela) {
   return (
     <LayoutDeAutenticacao
       titulo="Criar conta"
-      subtitulo="Leva menos de um minuto."
+      subtitulo="Informe seu email e escolha uma senha."
     >
       <motion.form
-        className="flex flex-col gap-4"
+        className="flex flex-col gap-6"
         onSubmit={aoEnviar}
         variants={sacudir}
         animate={controleDoErro}
@@ -98,6 +98,7 @@ export function TelaDeCadastro({ cliente }: PropsDaTela) {
           name="email"
           placeholder="voce@exemplo.com"
           autoComplete="email"
+          spellCheck={false}
           value={email}
           onChange={(evento) => setEmail(evento.target.value)}
           required
@@ -120,10 +121,10 @@ export function TelaDeCadastro({ cliente }: PropsDaTela) {
         </Botao>
       </motion.form>
 
-      <p className="text-center text-sm text-tinta-suave">
+      <p className="text-center text-base text-tinta-media">
         Já tem conta?{' '}
         <Link
-          className="font-semibold text-acento hover:underline underline-offset-4"
+          className="inline-flex min-h-12 items-center font-semibold text-acento underline underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
           to="/entrar"
         >
           Entrar

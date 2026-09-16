@@ -6,7 +6,7 @@ import { removerProduto } from '../../api/catalogo-admin';
 import { formatarCentavos } from '../../utils/dinheiro';
 import { Aviso, Botao, classesDeBotao } from '../../ui/indice';
 import { useListaDeProdutosAdmin } from '../../hooks/use-lista-de-produtos-admin';
-import { Paginacao } from '../products/paginacao';
+import { Paginacao } from '../produtos/paginacao';
 
 interface PropsDaTela {
   cliente: ApiClient;
@@ -47,10 +47,10 @@ export function TelaDeProdutosAdmin({ cliente }: PropsDaTela) {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-tinta">Produtos</h1>
+        <h1 className="text-balance text-2xl font-bold text-tinta">Produtos</h1>
         <Link
           to="/admin/produtos/novo"
-          className={classesDeBotao({ tamanho: 'pequeno' })}
+          className={classesDeBotao({ tamanho: 'pequeno', className: 'min-h-11 lg:min-h-9' })}
         >
           Novo produto
         </Link>

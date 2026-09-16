@@ -2,9 +2,10 @@
 
 Frontend em React + Vite + TypeScript para a API `projeto-test` (NestJS), projeto irmão.
 
-Estética: brutalismo refinado — grade visível, cores sólidas, sombra sólida (deslocamento sem
-desfoque), cantos retos. Motion tratado como parte do design system, não decoração: movimento
-sempre carrega informação (fila de refresh, transições de estado, entrada escalonada de listas).
+Interface com foco em clareza e conforto de leitura, inclusive para pessoas de 70 anos ou mais:
+azul-marinho, fundo claro e laranja reservado a ações principais e seleção. Texto base de 18px,
+controles de pelo menos 48px, foco visível e navegação da conta sempre acessível no celular.
+Os componentes de `src/ui/` concentram o padrão; movimento respeita a preferência do usuário.
 
 ## Requisitos
 
@@ -69,14 +70,21 @@ precisa cancelar o temporizador e não só o fetch) estão documentados em `CLAU
 ```
 src/
 ├─ api/          cliente HTTP e contratos da API
-├─ auth/         sessão e rotas protegidas
-├─ carrinho/     estado persistido por identidade
-├─ components/   primitivos de interface
-├─ hooks/        dados da vitrine
-├─ motion/       tokens e variantes reutilizáveis
+├─ assets/       imagens e ícones estáticos
+├─ auth/         sessão, carrinho e rotas protegidas
+├─ hooks/        dados da vitrine, produtos, endereços, admin
+├─ layout/       cabeçalho, rodapé, menu mobile, busca — LayoutDaLoja/LayoutAdmin
+├─ motion/       tokens e variantes reutilizáveis (usados pelas telas de autenticação)
 ├─ pages/        telas públicas, compra e administração
-└─ styles/       tokens de design
+├─ sections/     seções da home pública (Hero, Vitrine, Benefícios etc.)
+├─ styles/       tokens do tema em Tailwind v4
+├─ test/         setup e utilitários de teste
+├─ ui/           design system (Botao, Campo, Etiqueta etc. — importar de ui/indice.ts)
+└─ utils/        funções puras compartilhadas (ex.: caminho-seguro)
 ```
+
+Carrinho e sessão vivem em `src/auth/` (`ContextoDeSessao`, `ContextoDoCarrinho`), não numa pasta
+`carrinho/` própria.
 
 ## Testes
 

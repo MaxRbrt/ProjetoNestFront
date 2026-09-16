@@ -34,7 +34,10 @@ coverage
 /.superpowers
 .playwright-mcp/
 .playwright-cli/
-*.png
 .env.serena/
 
 /.serena/
+
+# Saída de execução do Playwright (test runner), quando rodado localmente
+test-results/
+playwright-report/

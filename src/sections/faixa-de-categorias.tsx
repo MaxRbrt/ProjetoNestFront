@@ -22,11 +22,11 @@ export function FaixaDeCategorias({ cliente }: { cliente: ApiClient }) {
         Explore por categoria
       </h2>
       {carregando ? (
-        <p role="status" className="text-sm text-tinta-media">
+        <p role="status" className="text-base text-tinta-media">
           Carregando categorias
         </p>
       ) : categorias.length === 0 ? (
-        <p className="text-sm text-tinta-media">
+        <p className="text-base text-tinta-media">
           Nenhuma categoria disponível no momento. Explore o catálogo completo.
         </p>
       ) : (
@@ -35,7 +35,7 @@ export function FaixaDeCategorias({ cliente }: { cliente: ApiClient }) {
             <Link
               key={categoria.id}
               to={`/produtos?${new URLSearchParams({ categoria: String(categoria.id) })}`}
-              className="flex min-h-20 w-48 shrink-0 snap-start items-center gap-3 rounded-card border border-borda bg-superficie px-4 py-3 text-tinta shadow-carta hover:border-marca focus-visible:outline-2 focus-visible:outline-acento"
+              className="flex min-h-20 w-48 shrink-0 snap-start items-center gap-3 rounded-card border border-borda bg-superficie px-4 py-3 text-tinta shadow-carta hover:border-marca hover:bg-superficie-sutil focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
             >
               <span
                 aria-hidden="true"
@@ -43,7 +43,7 @@ export function FaixaDeCategorias({ cliente }: { cliente: ApiClient }) {
               >
                 {categoria.nome.charAt(0).toUpperCase()}
               </span>
-              <span className="min-w-0 text-sm font-semibold break-words">
+              <span className="min-w-0 text-base font-semibold break-words">
                 {categoria.nome}
               </span>
             </Link>

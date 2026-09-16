@@ -283,7 +283,7 @@ export function TelaDeFormularioDeProdutoAdmin({ cliente }: PropsDaTela) {
 
   return (
     <div className="max-w-xl">
-      <h1 className="text-2xl font-bold text-tinta">
+      <h1 className="text-balance text-2xl font-bold text-tinta">
         {emEdicao ? 'Editar produto' : 'Novo produto'}
       </h1>
 

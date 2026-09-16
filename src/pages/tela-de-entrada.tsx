@@ -71,7 +71,7 @@ export function TelaDeEntrada() {
       subtitulo="Acesse sua conta para acompanhar seus pedidos."
     >
       <motion.form
-        className="flex flex-col gap-4"
+        className="flex flex-col gap-6"
         onSubmit={aoEnviar}
         variants={sacudir}
         animate={controleDoErro}
@@ -92,6 +92,7 @@ export function TelaDeEntrada() {
           name="email"
           placeholder="voce@exemplo.com"
           autoComplete="email"
+          spellCheck={false}
           value={email}
           onChange={(evento) => setEmail(evento.target.value)}
           required
@@ -113,17 +114,17 @@ export function TelaDeEntrada() {
         </Botao>
 
         <Link
-          className="text-sm font-semibold text-acento hover:underline underline-offset-4"
+          className="text-base inline-flex min-h-12 items-center font-semibold text-acento underline underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
           to="/esqueci-senha"
         >
           Esqueceu sua senha?
         </Link>
       </motion.form>
 
-      <p className="text-center text-sm text-tinta-suave">
+      <p className="text-center text-base text-tinta-media">
         Ainda não tem conta?{' '}
         <Link
-          className="font-semibold text-acento hover:underline underline-offset-4"
+          className="inline-flex min-h-12 items-center font-semibold text-acento underline underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
           to="/cadastrar"
         >
           Cadastre-se

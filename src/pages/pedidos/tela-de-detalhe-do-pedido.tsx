@@ -10,6 +10,7 @@ import {
   Aviso,
   Botao,
   Campo,
+  Cartao,
   Esqueleto,
   EtiquetaDeSituacao,
 } from '../../ui/indice';
@@ -69,7 +70,7 @@ export function TelaDeDetalheDoPedido({
       className={
         contexto === 'admin'
           ? ''
-          : 'mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8'
+          : 'mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8'
       }
     >
       {contexto === 'cliente' ? (
@@ -86,7 +87,7 @@ export function TelaDeDetalheDoPedido({
 
       <Link
         to={retorno}
-        className="mt-4 inline-block text-sm font-semibold text-acento underline underline-offset-4 hover:text-acento-escuro"
+        className="mt-2 inline-flex min-h-12 items-center rounded-pequeno text-base font-semibold text-tinta-media underline decoration-borda-forte underline-offset-4 hover:text-tinta hover:decoration-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
       >
         {rotuloDeVoltar}
       </Link>
@@ -211,7 +212,7 @@ function ConteudoDoPedido({
     carregando || !!acaoEmCurso || precisaAtualizar || !!erroDeCarga;
 
   return (
-    <div className="mt-6 flex flex-col gap-6">
+    <div className="mt-4 flex flex-col gap-6">
       {erroDeCarga ? <Aviso tipo="erro">{erroDeCarga}</Aviso> : null}
       {erroDeAcao ? <Aviso tipo="erro">{erroDeAcao}</Aviso> : null}
       {sucesso ? <Aviso tipo="sucesso">{sucesso}</Aviso> : null}
@@ -235,12 +236,13 @@ function ConteudoDoPedido({
 
       {pedido ? (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-tinta sm:text-3xl">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="flex flex-col gap-2">
+              <h1 className="text-balance text-3xl font-bold tracking-tight text-tinta sm:text-4xl">
                 Pedido #{pedido.id}
               </h1>
-              <p className="mt-1 text-sm text-tinta-media">
+              <p className="text-lg text-tinta-media">
+                Realizado em{' '}
                 {FORMATADOR_DE_DATA.format(new Date(pedido.criadoEm))}
               </p>
             </div>
@@ -250,67 +252,79 @@ function ConteudoDoPedido({
             />
           </div>
 
-          <div>
-            <h2 className="mb-2 text-lg font-semibold text-tinta">
+          <Cartao como="section">
+            <h2 className="mb-3 text-xl font-bold text-tinta">
               Endereço de entrega
             </h2>
-            <p className="text-sm text-tinta-media">
-              {pedido.enderecoDestinatario} — {pedido.enderecoLogradouro},{' '}
-              {pedido.enderecoNumero}
-              {pedido.enderecoComplemento
-                ? `, ${pedido.enderecoComplemento}`
-                : ''}
-              {' — '}
-              {pedido.enderecoBairro}, {pedido.enderecoCidade}/
-              {pedido.enderecoUf}
-            </p>
-          </div>
+            <div className="break-words text-lg leading-relaxed text-tinta-media">
+              <p>{pedido.enderecoDestinatario}</p>
+              <p>
+                {pedido.enderecoLogradouro}, {pedido.enderecoNumero}
+              </p>
+              {pedido.enderecoComplemento ? (
+                <p>{pedido.enderecoComplemento}</p>
+              ) : null}
+              <p>
+                {pedido.enderecoBairro} — {pedido.enderecoCidade}/
+                {pedido.enderecoUf}
+              </p>
+              <p>CEP {pedido.enderecoCep}</p>
+            </div>
+          </Cartao>
 
-          <div
-            role="region"
-            aria-label="Itens do pedido"
-            aria-busy={carregando}
-            className={`flex flex-col gap-3 ${carregando ? 'opacity-60' : ''}`}
-          >
-            <h2 className="text-lg font-semibold text-tinta">Itens</h2>
-            {pedido.itens.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-borda bg-superficie p-4 shadow-carta"
-              >
-                <div>
-                  <p className="font-medium text-tinta">{item.nomeDoProduto}</p>
-                  <p className="text-sm text-tinta-media">
-                    {formatarCentavos(item.precoUnitarioEmCentavos)} ×{' '}
-                    {item.quantidade}
+          <Cartao espaco="nenhum">
+            <div
+              role="region"
+              aria-label="Itens do pedido"
+              aria-busy={carregando}
+              className="flex flex-col"
+            >
+              <h2 className="border-b border-borda px-5 py-4 text-xl font-bold text-tinta sm:px-7">
+                Itens
+              </h2>
+              {pedido.itens.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex flex-wrap items-center justify-between gap-3 border-b border-borda px-5 py-4 sm:px-7"
+                >
+                  <div className="min-w-0">
+                    <p className="break-words font-semibold text-tinta">
+                      {item.nomeDoProduto}
+                    </p>
+                    <p className="text-base text-tinta-media">
+                      Quantidade: {item.quantidade} · Preço por unidade:{' '}
+                      {formatarCentavos(item.precoUnitarioEmCentavos)}
+                    </p>
+                  </div>
+                  <p className="font-semibold tabular-nums text-tinta">
+                    {formatarCentavos(
+                      item.precoUnitarioEmCentavos * item.quantidade,
+                    )}
                   </p>
                 </div>
-                <p className="font-semibold text-tinta">
-                  {formatarCentavos(
-                    item.precoUnitarioEmCentavos * item.quantidade,
-                  )}
-                </p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          <dl className="flex max-w-sm flex-col gap-1 border-t border-borda pt-3 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-tinta-media">Subtotal</dt>
-              <dd>{formatarCentavos(pedido.subtotalEmCentavos)}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-tinta-media">
-                Frete ({pedido.modalidadeDeFrete}, até {pedido.prazoEmDiasUteis}{' '}
-                dias úteis)
-              </dt>
-              <dd>{formatarCentavos(pedido.freteEmCentavos)}</dd>
-            </div>
-            <div className="flex justify-between border-t border-borda pt-2 text-base font-semibold text-tinta">
-              <dt>Total</dt>
-              <dd>{formatarCentavos(pedido.totalEmCentavos)}</dd>
-            </div>
-          </dl>
+            <dl className="flex flex-col gap-3 bg-superficie-sutil px-5 py-5 text-lg sm:px-7">
+              <div className="flex flex-wrap justify-between gap-3">
+                <dt className="text-tinta-media">Subtotal</dt>
+                <dd>{formatarCentavos(pedido.subtotalEmCentavos)}</dd>
+              </div>
+              <div className="flex flex-wrap justify-between gap-3">
+                <dt className="text-tinta-media">
+                  Frete ({pedido.modalidadeDeFrete}, até {pedido.prazoEmDiasUteis}{' '}
+                  dias úteis)
+                </dt>
+                <dd>{formatarCentavos(pedido.freteEmCentavos)}</dd>
+              </div>
+              <div className="mt-1 flex flex-wrap justify-between gap-3 border-t border-borda pt-4 text-2xl font-bold text-tinta">
+                <dt>Total</dt>
+                <dd className="tabular-nums">
+                  {formatarCentavos(pedido.totalEmCentavos)}
+                </dd>
+              </div>
+            </dl>
+          </Cartao>
 
           {contexto === 'cliente' && pedido.situacao === 'PENDENTE' ? (
             <FormularioDePagamento
@@ -330,7 +344,7 @@ function ConteudoDoPedido({
             />
           ) : null}
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 empty:hidden">
             {contexto === 'admin' && pedido.situacao === 'PAGO' ? (
               <Botao
                 disabled={bloqueado}
@@ -437,14 +451,17 @@ function FormularioDePagamento({
   }
 
   return (
-    <div className="max-w-sm rounded-card border border-borda bg-superficie p-5 shadow-carta">
-      <h2 className="mb-3 text-lg font-semibold text-tinta">Pagamento</h2>
+    <Cartao como="section" className="border-t-4 border-t-acento">
+      <h2 className="text-xl font-bold text-tinta">Pagamento</h2>
+      <p className="mb-5 mt-1 text-lg text-tinta-media">
+        Informe o cartão para concluir a compra.
+      </p>
       {recusado ? (
-        <div className="mb-3">
+        <div className="mb-5">
           <Aviso tipo="erro">{recusado}</Aviso>
         </div>
       ) : null}
-      <form onSubmit={aoEnviar} className="flex flex-col gap-3">
+      <form onSubmit={aoEnviar} className="flex max-w-xl flex-col gap-6">
         <Campo
           rotulo="Número do cartão"
           placeholder="0000000000000000"
@@ -455,11 +472,16 @@ function FormularioDePagamento({
           ajuda="Simulado: qualquer número de 16 dígitos aprova, exceto terminado em 0002."
           required
         />
-        <Botao type="submit" disabled={bloqueado} carregando={pagando}>
+        <Botao
+          type="submit"
+          tamanho="grande"
+          disabled={bloqueado}
+          carregando={pagando}
+        >
           {pagando ? 'Processando…' : 'Pagar'}
         </Botao>
       </form>
-    </div>
+    </Cartao>
   );
 }
 

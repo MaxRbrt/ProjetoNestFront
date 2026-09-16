@@ -106,9 +106,9 @@ export function TelaDeRedefinirSenha({ cliente }: PropsDaTela) {
             ? 'O link pode ter expirado ou já ter sido usado.'
             : 'O link de redefinição está incompleto.'}
         </Aviso>
-        <p className="text-center text-sm text-tinta-suave">
+        <p className="text-center text-base text-tinta-media">
           <Link
-            className="font-semibold text-acento hover:underline underline-offset-4"
+            className="inline-flex min-h-12 items-center font-semibold text-acento underline underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
             to="/esqueci-senha"
           >
             Pedir um novo link
@@ -124,9 +124,9 @@ export function TelaDeRedefinirSenha({ cliente }: PropsDaTela) {
         <Aviso tipo="sucesso">
           Sua senha foi alterada. Agora você já pode entrar com ela.
         </Aviso>
-        <p className="text-center text-sm text-tinta-suave">
+        <p className="text-center text-base text-tinta-media">
           <Link
-            className="font-semibold text-acento hover:underline underline-offset-4"
+            className="inline-flex min-h-12 items-center font-semibold text-acento underline underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
             to="/entrar"
           >
             Ir para a entrada
@@ -142,7 +142,7 @@ export function TelaDeRedefinirSenha({ cliente }: PropsDaTela) {
       subtitulo="Escolha uma nova senha para sua conta."
     >
       <motion.form
-        className="flex flex-col gap-4"
+        className="flex flex-col gap-6"
         onSubmit={aoEnviar}
         variants={sacudir}
         animate={controleDoErro}

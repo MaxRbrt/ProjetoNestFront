@@ -21,7 +21,10 @@ export function Trilha({ itens }: PropsDaTrilha) {
   const ultimoIndice = itens.length - 1;
 
   return (
-    <nav aria-label="Trilha de navegação" className="text-sm text-tinta-media">
+    <nav
+      aria-label="Trilha de navegação"
+      className="text-base text-tinta-media"
+    >
       <ol className="flex flex-wrap items-center gap-1.5">
         {itens.map((item, indice) => {
           const atual = indice === ultimoIndice;
@@ -45,7 +48,7 @@ export function Trilha({ itens }: PropsDaTrilha) {
               ) : (
                 <Link
                   to={item.para}
-                  className="hover:text-tinta hover:underline"
+                  className="inline-flex min-h-12 items-center rounded-pequeno hover:text-tinta hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
                 >
                   {item.rotulo}
                 </Link>

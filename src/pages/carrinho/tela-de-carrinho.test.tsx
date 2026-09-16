@@ -63,6 +63,7 @@ const OPCOES_DE_FRETE = [
 // cada teste componha o cenário sem duplicar a função inteira.
 // ---------------------------------------------
 function montarCliente(opcoes: {
+  falharProdutos?: () => boolean;
   enderecos?: (typeof ENDERECO)[];
   aoCriarPedido?: (chave: string | undefined) => Promise<unknown>;
 }) {
@@ -87,6 +88,8 @@ function montarCliente(opcoes: {
   );
   const get = vi.fn((caminho: string) => {
     if (caminho.startsWith('/products/')) {
+      if (opcoes.falharProdutos?.())
+        return Promise.reject(new Error('rede indisponível'));
       return Promise.resolve(PRODUTO);
     }
     if (caminho === '/addresses') {
@@ -111,6 +114,22 @@ function abrirCarrinho(cliente: ApiClient) {
 }
 
 describe('Tela do carrinho', () => {
+  it('distingue falha ao consultar produtos de carrinho vazio e permite repetir a leitura', async () => {
+    itensDoCarrinho = [{ produtoId: 1, quantidade: 1 }];
+    let falhar = true;
+    const cliente = montarCliente({ falharProdutos: () => falhar });
+    abrirCarrinho(cliente);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Não foi possível carregar os produtos do carrinho.',
+    );
+    expect(
+      screen.queryByText('Seu carrinho está vazio.'),
+    ).not.toBeInTheDocument();
+    falhar = false;
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+    expect(await screen.findByText('Mouse sem fio')).toBeInTheDocument();
+  });
+
   it('carrinho vazio mostra "Ver catálogo"', async () => {
     itensDoCarrinho = [];
     abrirCarrinho(montarCliente({}));

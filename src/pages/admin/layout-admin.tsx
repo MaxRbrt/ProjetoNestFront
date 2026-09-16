@@ -20,10 +20,10 @@ export function LayoutAdmin() {
   const { usuario, sair } = useSessao();
 
   return (
-    <div className="flex min-h-screen flex-col bg-fundo">
+    <div className="flex min-h-dvh flex-col bg-fundo">
       <a
         href="#conteudo"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-card focus:bg-white focus:px-4 focus:py-2 focus:text-tinta focus:shadow-carta-media"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-card focus:bg-white focus:px-4 focus:py-2 focus:text-tinta focus:shadow-carta-media focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
       >
         Pular para o conteúdo
       </a>

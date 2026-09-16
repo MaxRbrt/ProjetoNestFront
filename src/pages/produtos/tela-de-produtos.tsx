@@ -4,9 +4,9 @@ import type { ApiClient } from '../../api/cliente';
 import { filtroDaUrl, urlDoFiltro } from '../../api/produtos';
 import { useCategorias } from '../../hooks/use-categorias';
 import { useProdutos } from '../../hooks/use-produtos';
-import { Trilha } from '../../layout/trilha';
+import { CabecalhoDaPagina } from '../../layout/cabecalho-da-pagina';
 import { GradeDeProdutos } from '../../produtos/grade-de-produtos';
-import { Aviso, Botao, Selecao } from '../../ui/indice';
+import { Aviso, Botao, Cartao, Selecao } from '../../ui/indice';
 import { FiltroDeProdutosView } from './filtro-de-produtos';
 import { Paginacao } from './paginacao';
 
@@ -98,20 +98,18 @@ export function TelaDeProdutos({ cliente }: PropsDaTela) {
   }
 
   return (
-    <section className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <Trilha
-        itens={[
+    <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <CabecalhoDaPagina
+        trilha={[
           { rotulo: 'Início', para: '/' },
           { rotulo: 'Produtos', para: '/produtos' },
           ...(categoria ? [{ rotulo: categoria.nome }] : []),
         ]}
+        titulo={categoria?.nome ?? 'Produtos'}
       />
-      <h1 className="mt-5 text-2xl font-bold tracking-tight text-tinta break-words sm:text-3xl">
-        {categoria?.nome ?? 'Produtos'}
-      </h1>
       {filtro.busca ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <p className="min-w-0 text-tinta-media break-words">
+        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-card border border-borda bg-superficie py-1 pl-4 pr-1">
+          <p className="min-w-0 flex-1 text-lg text-tinta break-words">
             Resultados para “{filtro.busca}”
           </p>
           <Botao
@@ -128,7 +126,7 @@ export function TelaDeProdutos({ cliente }: PropsDaTela) {
           </Botao>
         </div>
       ) : null}
-      <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:gap-8">
+      <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:gap-10">
         <FiltroDeProdutosView
           categorias={categorias}
           filtro={filtro}
@@ -136,7 +134,7 @@ export function TelaDeProdutos({ cliente }: PropsDaTela) {
         />
         <div ref={topoDaLista} className="min-w-0 flex-1">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-borda pb-5">
-            <p aria-live="polite" className="pb-2 text-sm text-tinta-media">
+            <p aria-live="polite" className="pb-3 text-lg font-medium text-tinta">
               {carregando
                 ? 'Carregando…'
                 : erro
@@ -182,7 +180,7 @@ export function TelaDeProdutos({ cliente }: PropsDaTela) {
               <GradeDeProdutos produtos={[]} carregando />
             </div>
           ) : produtos?.dados.length === 0 ? (
-            <div className="flex flex-col items-start gap-4 rounded-card border border-borda bg-superficie p-6 text-tinta-media">
+            <Cartao className="flex flex-col items-start gap-4 text-lg text-tinta-media">
               <p className="max-w-full break-words">
                 {temFiltro
                   ? `Nenhum produto encontrado com ${filtrosAplicados}.`
@@ -193,7 +191,7 @@ export function TelaDeProdutos({ cliente }: PropsDaTela) {
                   Limpar filtros
                 </Botao>
               ) : null}
-            </div>
+            </Cartao>
           ) : (
             <GradeDeProdutos produtos={produtos?.dados ?? []} />
           )}

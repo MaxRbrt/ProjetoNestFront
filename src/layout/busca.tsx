@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Botao } from '../ui/indice';
 
 // ---------------------------------------------
 // Busca do cabeçalho
@@ -36,7 +37,11 @@ export function Busca() {
   }
 
   return (
-    <form role="search" className="flex w-full max-w-2xl" onSubmit={aoEnviar}>
+    <form
+      role="search"
+      className="flex w-full min-w-0 gap-2"
+      onSubmit={aoEnviar}
+    >
       <label htmlFor="busca-do-cabecalho" className="sr-only">
         Buscar produto
       </label>
@@ -44,15 +49,16 @@ export function Busca() {
         id="busca-do-cabecalho"
         type="search"
         name="nome"
-        placeholder="Buscar produto…"
+        placeholder="Buscar produtos…"
         value={valor}
         onChange={(evento) => setValor(evento.target.value)}
-        className="h-11 w-full rounded-l-card border border-r-0 border-borda bg-white px-3.5 text-[0.95rem] text-tinta placeholder:text-tinta-media focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
+        className="min-h-13 min-w-0 w-full rounded-card border border-borda-forte bg-superficie px-4 text-lg text-tinta placeholder:text-tinta-media focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
       />
-      <button
+      <Botao
         type="submit"
         aria-label="Buscar"
-        className="flex h-11 items-center justify-center rounded-r-card bg-acento px-4 text-white transition-colors duration-150 ease-saida hover:bg-acento-escuro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
+        tamanho="pequeno"
+        className="shrink-0 focus-visible:outline-white"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -67,7 +73,8 @@ export function Busca() {
           <circle cx="11" cy="11" r="7" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
-      </button>
+        <span>Buscar</span>
+      </Botao>
     </form>
   );
 }

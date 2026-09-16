@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import type { ApiClient } from '../../api/cliente';
 import { ApiError } from '../../api/cliente';
 import {
@@ -9,11 +9,12 @@ import {
   type Endereco,
 } from '../../api/enderecos';
 import { useEnderecos } from '../../hooks/use-enderecos';
-import { Trilha } from '../../layout/trilha';
+import { CabecalhoDaPagina } from '../../layout/cabecalho-da-pagina';
 import {
   Aviso,
   Botao,
   Campo,
+  Cartao,
   Esqueleto,
   Etiqueta,
   Selecao,
@@ -51,13 +52,18 @@ export function TelaDeEnderecos({ cliente }: PropsDaTela) {
   const { enderecos, carregando, erroDeCarga, recarregar } =
     useEnderecos(cliente);
   const [erroDeAcao, setErroDeAcao] = useState<string | null>(null);
+  const [mensagemDeSucesso, setMensagemDeSucesso] = useState<string | null>(
+    null,
+  );
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [idEmEdicao, setIdEmEdicao] = useState<number | null>(null);
   const [formulario, setFormulario] =
     useState<DadosDeEndereco>(FORMULARIO_VAZIO);
   const [salvando, setSalvando] = useState(false);
+  const tituloDaPagina = useRef<HTMLHeadingElement>(null);
 
   function abrirParaCriar() {
+    setMensagemDeSucesso(null);
     setIdEmEdicao(null);
     setFormulario(FORMULARIO_VAZIO);
     setErroDeAcao(null);
@@ -65,6 +71,7 @@ export function TelaDeEnderecos({ cliente }: PropsDaTela) {
   }
 
   function abrirParaEditar(endereco: Endereco) {
+    setMensagemDeSucesso(null);
     setIdEmEdicao(endereco.id);
     setFormulario({
       apelido: endereco.apelido,
@@ -83,6 +90,7 @@ export function TelaDeEnderecos({ cliente }: PropsDaTela) {
 
   async function aoSalvar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
+    setMensagemDeSucesso(null);
     setErroDeAcao(null);
     setSalvando(true);
     try {
@@ -91,7 +99,9 @@ export function TelaDeEnderecos({ cliente }: PropsDaTela) {
       } else {
         await atualizarEndereco(cliente, idEmEdicao, formulario);
       }
+      setMensagemDeSucesso('Endereço salvo com sucesso.');
       setMostrarFormulario(false);
+      tituloDaPagina.current?.focus();
       await recarregar();
     } catch (falha) {
       setErroDeAcao(
@@ -105,9 +115,11 @@ export function TelaDeEnderecos({ cliente }: PropsDaTela) {
   }
 
   async function aoMarcarPrincipal(id: number) {
+    setMensagemDeSucesso(null);
     setErroDeAcao(null);
     try {
       await atualizarEndereco(cliente, id, { principal: true });
+      setMensagemDeSucesso('Endereço principal atualizado.');
       await recarregar();
     } catch (falha) {
       setErroDeAcao(
@@ -120,9 +132,11 @@ export function TelaDeEnderecos({ cliente }: PropsDaTela) {
 
   async function aoRemover(id: number) {
     if (!window.confirm('Remover este endereço?')) return;
+    setMensagemDeSucesso(null);
     setErroDeAcao(null);
     try {
       await removerEndereco(cliente, id);
+      setMensagemDeSucesso('Endereço removido.');
       await recarregar();
     } catch (falha) {
       setErroDeAcao(
@@ -134,18 +148,42 @@ export function TelaDeEnderecos({ cliente }: PropsDaTela) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-      <Trilha
-        itens={[{ rotulo: 'Início', para: '/' }, { rotulo: 'Meus endereços' }]}
+    <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      <CabecalhoDaPagina
+        trilha={[{ rotulo: 'Início', para: '/' }, { rotulo: 'Meus endereços' }]}
+        titulo="Meus endereços"
+        descricao="Cadastre e organize os locais onde deseja receber seus pedidos."
+        refDoTitulo={tituloDaPagina}
+        acao={
+          !erroDeCarga &&
+          !carregando &&
+          !mostrarFormulario &&
+          enderecos.length > 0 ? (
+            <Botao type="button" onClick={abrirParaCriar}>
+              Adicionar endereço
+            </Botao>
+          ) : null
+        }
       />
 
-      <h1 className="mt-4 text-2xl font-bold tracking-tight text-tinta sm:text-3xl">
-        Meus endereços
-      </h1>
+      {mensagemDeSucesso ? (
+        <div className="mt-6">
+          <Aviso tipo="sucesso">{mensagemDeSucesso}</Aviso>
+        </div>
+      ) : null}
 
       {erroDeCarga ? (
         <div className="mt-6">
           <Aviso tipo="erro">{erroDeCarga}</Aviso>
+          <Botao
+            type="button"
+            variante="secundario"
+            className="mt-4"
+            carregando={carregando}
+            onClick={() => void recarregar()}
+          >
+            Tentar novamente
+          </Botao>
         </div>
       ) : null}
 
@@ -160,18 +198,21 @@ export function TelaDeEnderecos({ cliente }: PropsDaTela) {
           ) : null}
 
           {enderecos.length === 0 && !mostrarFormulario ? (
-            <div className="mt-6 flex flex-col items-center gap-4 rounded-card border border-borda bg-superficie-sutil py-16 text-center">
-              <p className="text-tinta-media">
+            <Cartao className="mt-8 flex flex-col items-start gap-4">
+              <h2 className="text-xl font-bold text-tinta">
                 Você ainda não tem nenhum endereço cadastrado.
+              </h2>
+              <p className="text-lg text-tinta-media">
+                Cadastre um endereço para poder finalizar suas compras.
               </p>
-              <Botao type="button" onClick={abrirParaCriar}>
+              <Botao type="button" className="mt-2" onClick={abrirParaCriar}>
                 Cadastrar endereço
               </Botao>
-            </div>
+            </Cartao>
           ) : null}
 
           {enderecos.length > 0 ? (
-            <ul className="mt-6 flex flex-col gap-3">
+            <ul className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
               {enderecos.map((endereco) => (
                 <CartaoDeEndereco
                   key={endereco.id}
@@ -184,14 +225,6 @@ export function TelaDeEnderecos({ cliente }: PropsDaTela) {
             </ul>
           ) : null}
 
-          {!mostrarFormulario && enderecos.length > 0 ? (
-            <div className="mt-6">
-              <Botao type="button" onClick={abrirParaCriar}>
-                Adicionar endereço
-              </Botao>
-            </div>
-          ) : null}
-
           {mostrarFormulario ? (
             <FormularioDeEndereco
               idEmEdicao={idEmEdicao}
@@ -199,7 +232,10 @@ export function TelaDeEnderecos({ cliente }: PropsDaTela) {
               aoAlterar={setFormulario}
               salvando={salvando}
               aoSalvar={aoSalvar}
-              aoCancelar={() => setMostrarFormulario(false)}
+              aoCancelar={() => {
+                setMostrarFormulario(false);
+                tituloDaPagina.current?.focus();
+              }}
             />
           ) : null}
         </>
@@ -222,24 +258,38 @@ function CartaoDeEndereco({
   aoRemover,
 }: PropsDoCartao) {
   return (
-    <li className="flex flex-col gap-3 rounded-card border border-borda bg-superficie p-4 shadow-carta sm:flex-row sm:items-start sm:justify-between">
-      <div>
+    <Cartao como="li" className="flex min-w-0 flex-col gap-5">
+      <div className="flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <strong className="font-semibold text-tinta">
+          <h2 className="break-words text-xl font-bold text-tinta">
             {endereco.apelido}
-          </strong>
+          </h2>
           {endereco.principal ? (
             <Etiqueta tom="sucesso">Principal</Etiqueta>
           ) : null}
         </div>
-        <p className="mt-1 text-sm text-tinta-media">
-          {endereco.destinatario} — {endereco.logradouro}, {endereco.numero}
-          {endereco.complemento ? `, ${endereco.complemento}` : ''}
-          {' — '}
-          {endereco.bairro}, {endereco.cidade}/{endereco.uf}
-        </p>
+        <div className="mt-3 break-words text-lg leading-relaxed text-tinta-media">
+          <p className="font-medium text-tinta">{endereco.destinatario}</p>
+          <p>
+            {endereco.logradouro}, {endereco.numero}
+          </p>
+          {endereco.complemento ? <p>{endereco.complemento}</p> : null}
+          <p>{endereco.bairro}</p>
+          <p>
+            {endereco.cidade} — {endereco.uf}
+          </p>
+          <p>CEP {endereco.cep}</p>
+        </div>
       </div>
-      <div className="flex flex-shrink-0 flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2 border-t border-borda pt-4">
+        <Botao
+          variante="secundario"
+          tamanho="pequeno"
+          type="button"
+          onClick={aoEditar}
+        >
+          Editar
+        </Botao>
         {!endereco.principal ? (
           <Botao
             variante="fantasma"
@@ -251,23 +301,16 @@ function CartaoDeEndereco({
           </Botao>
         ) : null}
         <Botao
-          variante="fantasma"
-          tamanho="pequeno"
-          type="button"
-          onClick={aoEditar}
-        >
-          Editar
-        </Botao>
-        <Botao
           variante="perigo"
           tamanho="pequeno"
           type="button"
+          className="ml-auto"
           onClick={aoRemover}
         >
           Remover
         </Botao>
       </div>
-    </li>
+    </Cartao>
   );
 }
 
@@ -297,101 +340,124 @@ function FormularioDeEndereco({
 }: PropsDoFormulario) {
   return (
     <form
-      className="mt-6 flex flex-col gap-4 rounded-card border border-borda bg-superficie p-5 shadow-carta"
+      className="mt-8 flex flex-col gap-2 rounded-card border border-t-4 border-borda border-t-acento bg-superficie p-5 shadow-carta sm:p-7"
+      aria-labelledby="titulo-do-endereco"
       onSubmit={aoSalvar}
     >
-      <h2 className="text-lg font-semibold text-tinta">
+      <h2 id="titulo-do-endereco" className="text-xl font-bold text-tinta sm:text-2xl">
         {idEmEdicao === null ? 'Novo endereço' : 'Editar endereço'}
       </h2>
+      <p className="text-lg text-tinta-media">
+        Preencha os dados de entrega. O complemento é opcional.
+      </p>
+      <fieldset
+        disabled={salvando}
+        className="mt-4 flex min-w-0 flex-col gap-5"
+      >
+        <Campo
+          rotulo="Apelido"
+          autoFocus
+          autoComplete="section-entrega nickname"
+          ajuda="Um nome para identificar este endereço."
+          placeholder="Casa, trabalho…"
+          value={formulario.apelido}
+          onChange={(e) =>
+            aoAlterar({ ...formulario, apelido: e.target.value })
+          }
+          required
+        />
+        <Campo
+          rotulo="Destinatário"
+          autoComplete="section-entrega shipping name"
+          value={formulario.destinatario}
+          onChange={(e) =>
+            aoAlterar({ ...formulario, destinatario: e.target.value })
+          }
+          required
+        />
 
-      <Campo
-        rotulo="Apelido"
-        placeholder="Casa, Trabalho..."
-        value={formulario.apelido}
-        onChange={(e) => aoAlterar({ ...formulario, apelido: e.target.value })}
-        required
-      />
-      <Campo
-        rotulo="Destinatário"
-        value={formulario.destinatario}
-        onChange={(e) =>
-          aoAlterar({ ...formulario, destinatario: e.target.value })
-        }
-        required
-      />
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[10rem_1fr]">
         <Campo
           rotulo="CEP"
+          autoComplete="section-entrega shipping postal-code"
+          inputMode="numeric"
           placeholder="00000-000"
           value={formulario.cep}
           onChange={(e) => aoAlterar({ ...formulario, cep: e.target.value })}
           required
         />
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-[minmax(0,1fr)_9rem]">
+          <Campo
+            rotulo="Logradouro"
+            autoComplete="section-entrega shipping address-line1"
+            value={formulario.logradouro}
+            onChange={(e) =>
+              aoAlterar({ ...formulario, logradouro: e.target.value })
+            }
+            required
+          />
+          <Campo
+            rotulo="Número"
+            placeholder="123 ou S/N"
+            value={formulario.numero}
+            onChange={(e) =>
+              aoAlterar({ ...formulario, numero: e.target.value })
+            }
+            required
+          />
+        </div>
+
         <Campo
-          rotulo="Número"
-          placeholder="123 ou S/N"
-          value={formulario.numero}
-          onChange={(e) => aoAlterar({ ...formulario, numero: e.target.value })}
+          rotulo="Complemento"
+          autoComplete="section-entrega shipping address-line2"
+          value={formulario.complemento ?? ''}
+          onChange={(e) =>
+            aoAlterar({ ...formulario, complemento: e.target.value })
+          }
+        />
+        <Campo
+          rotulo="Bairro"
+          value={formulario.bairro}
+          onChange={(e) => aoAlterar({ ...formulario, bairro: e.target.value })}
           required
         />
-      </div>
 
-      <Campo
-        rotulo="Logradouro"
-        value={formulario.logradouro}
-        onChange={(e) =>
-          aoAlterar({ ...formulario, logradouro: e.target.value })
-        }
-        required
-      />
-
-      <Campo
-        rotulo="Complemento"
-        value={formulario.complemento ?? ''}
-        onChange={(e) =>
-          aoAlterar({ ...formulario, complemento: e.target.value })
-        }
-      />
-      <Campo
-        rotulo="Bairro"
-        value={formulario.bairro}
-        onChange={(e) => aoAlterar({ ...formulario, bairro: e.target.value })}
-        required
-      />
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_8rem]">
-        <Campo
-          rotulo="Cidade"
-          value={formulario.cidade}
-          onChange={(e) => aoAlterar({ ...formulario, cidade: e.target.value })}
-          required
-        />
-        <Selecao
-          rotulo="UF"
-          value={formulario.uf}
-          onChange={(e) => aoAlterar({ ...formulario, uf: e.target.value })}
-          required
-        >
-          <option value="" disabled>
-            Selecione
-          </option>
-          {UFS_VALIDAS.map((uf) => (
-            <option key={uf} value={uf}>
-              {uf}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-[minmax(0,1fr)_10rem]">
+          <Campo
+            rotulo="Cidade"
+            autoComplete="section-entrega shipping address-level2"
+            value={formulario.cidade}
+            onChange={(e) =>
+              aoAlterar({ ...formulario, cidade: e.target.value })
+            }
+            required
+          />
+          <Selecao
+            rotulo="UF"
+            autoComplete="section-entrega shipping address-level1"
+            value={formulario.uf}
+            onChange={(e) => aoAlterar({ ...formulario, uf: e.target.value })}
+            required
+          >
+            <option value="" disabled>
+              Selecione
             </option>
-          ))}
-        </Selecao>
-      </div>
+            {UFS_VALIDAS.map((uf) => (
+              <option key={uf} value={uf}>
+                {uf}
+              </option>
+            ))}
+          </Selecao>
+        </div>
 
-      <div className="flex gap-3">
-        <Botao type="submit" carregando={salvando}>
-          Salvar
-        </Botao>
-        <Botao type="button" variante="secundario" onClick={aoCancelar}>
-          Cancelar
-        </Botao>
-      </div>
+        <div className="mt-1 flex flex-col gap-3 border-t border-borda pt-5 sm:flex-row">
+          <Botao type="submit" carregando={salvando}>
+            Salvar endereço
+          </Botao>
+          <Botao type="button" variante="secundario" onClick={aoCancelar}>
+            Cancelar
+          </Botao>
+        </div>
+      </fieldset>
     </form>
   );
 }
@@ -406,10 +472,10 @@ function EsqueletoDaLista() {
     <div
       role="status"
       aria-label="Carregando endereços"
-      className="mt-6 flex flex-col gap-3"
+      className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2"
     >
-      <Esqueleto className="h-24 w-full" />
-      <Esqueleto className="h-24 w-full" />
+      <Esqueleto className="h-56 w-full" />
+      <Esqueleto className="h-56 w-full" />
     </div>
   );
 }

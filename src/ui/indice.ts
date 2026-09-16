@@ -6,3 +6,4 @@ export { EtiquetaDeSituacao } from './etiqueta-de-situacao';
 export { Aviso } from './aviso';
 export { Esqueleto } from './esqueleto';
 export { Preco } from './preco';
+export { Cartao } from './cartao';

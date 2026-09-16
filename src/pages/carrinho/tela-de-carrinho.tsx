@@ -12,8 +12,16 @@ import {
 } from '../../hooks/use-linhas-do-carrinho';
 import { useEnderecosDoCheckout } from '../../hooks/use-enderecos-do-checkout';
 import { useCotacaoDeFrete } from '../../hooks/use-cotacao-de-frete';
-import { Trilha } from '../../layout/trilha';
-import { Aviso, Botao, Esqueleto, Preco, Selecao } from '../../ui/indice';
+import { CabecalhoDaPagina } from '../../layout/cabecalho-da-pagina';
+import {
+  Aviso,
+  Botao,
+  Cartao,
+  classesDeBotao,
+  Esqueleto,
+  Preco,
+  Selecao,
+} from '../../ui/indice';
 import { formatarCentavos } from '../../utils/dinheiro';
 
 interface PropsDaTela {
@@ -37,7 +45,7 @@ interface PropsDaTela {
 export function TelaDeCarrinho({ cliente }: PropsDaTela) {
   const { itens, atualizarQuantidade, removerItem, limpar } = useCarrinho();
   const navegar = useNavigate();
-  const { linhas, carregando, erroDeCarga } = useLinhasDoCarrinho(
+  const { linhas, carregando, erroDeCarga, recarregar } = useLinhasDoCarrinho(
     cliente,
     itens,
   );
@@ -124,55 +132,81 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
   const podeFinalizar = !motivoDoBloqueio;
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <Trilha
-        itens={[{ rotulo: 'Início', para: '/' }, { rotulo: 'Carrinho' }]}
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <CabecalhoDaPagina
+        trilha={[{ rotulo: 'Início', para: '/' }, { rotulo: 'Carrinho' }]}
+        titulo="Carrinho"
+        descricao="Confira os produtos, escolha a entrega e revise o total do pedido."
       />
 
-      <h1 className="mt-4 text-2xl font-bold tracking-tight text-tinta sm:text-3xl">
-        Carrinho
-      </h1>
-
       {erroDeCarga ? (
-        <div className="mt-6">
+        <div className="mt-8">
           <Aviso tipo="erro">{erroDeCarga}</Aviso>
+          <Botao
+            type="button"
+            variante="secundario"
+            className="mt-4"
+            carregando={carregando}
+            onClick={recarregar}
+          >
+            Tentar novamente
+          </Botao>
         </div>
       ) : null}
 
       {!erroDeCarga && carregando ? <EsqueletoDoCarrinho /> : null}
 
       {carrinhoVazio ? (
-        <div className="mt-10 flex flex-col items-center gap-4 rounded-card border border-borda bg-superficie-sutil py-16 text-center">
-          <p className="text-tinta-media">Seu carrinho está vazio.</p>
+        <Cartao className="mt-8 flex flex-col items-start gap-4">
+          <h2 className="text-xl font-bold text-tinta">
+            Seu carrinho está vazio.
+          </h2>
+          <p className="text-lg text-tinta-media">
+            Escolha um produto no catálogo para começar.
+          </p>
           <Link
             to="/produtos"
-            className="inline-flex min-h-11 items-center justify-center rounded-card bg-acento px-6 py-3 font-semibold text-white hover:bg-acento-escuro focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-acento"
+            className={classesDeBotao({ className: 'mt-2' })}
           >
             Ver catálogo
           </Link>
-        </div>
+        </Cartao>
       ) : null}
 
       {!erroDeCarga && !carregando && linhas.length > 0 ? (
         <>
-          <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-12">
+          <div className="mt-8 grid grid-cols-1 items-start gap-8 lg:grid-cols-12 lg:gap-10">
             <div className="flex flex-col gap-4 lg:col-span-7">
               {erroDeAcao ? <Aviso tipo="erro">{erroDeAcao}</Aviso> : null}
 
-              {linhas.map((linha) => (
-                <ItemDoCarrinhoCartao
-                  key={linha.produto.id}
-                  linha={linha}
-                  aoAlterarQuantidade={(quantidade) =>
-                    atualizarQuantidade(linha.produto.id, quantidade)
-                  }
-                  aoRemover={() => removerItem(linha.produto.id)}
-                />
-              ))}
+              <Cartao
+                como="section"
+                espaco="nenhum"
+                aria-labelledby="produtos-do-carrinho"
+              >
+                <h2
+                  id="produtos-do-carrinho"
+                  className="border-b border-borda px-5 py-4 text-xl font-bold text-tinta sm:px-7"
+                >
+                  Produtos no carrinho
+                </h2>
+                <ul className="divide-y divide-borda">
+                  {linhas.map((linha) => (
+                    <ItemDoCarrinhoCartao
+                      key={linha.produto.id}
+                      linha={linha}
+                      aoAlterarQuantidade={(quantidade) =>
+                        atualizarQuantidade(linha.produto.id, quantidade)
+                      }
+                      aoRemover={() => removerItem(linha.produto.id)}
+                    />
+                  ))}
+                </ul>
+              </Cartao>
             </div>
 
-            <div className="lg:col-span-5">
-              <div className="flex flex-col gap-5 rounded-card border border-borda bg-superficie p-5 shadow-carta lg:sticky lg:top-24">
+            <div className="lg:sticky lg:top-6 lg:col-span-5">
+              <Cartao como="section" className="flex flex-col gap-6">
                 <ResumoDoCheckout
                   subtotal={subtotal}
                   total={total}
@@ -189,7 +223,6 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
                 <Botao
                   bloco
                   tamanho="grande"
-                  className="hidden lg:flex"
                   carregando={finalizando}
                   disabled={!podeFinalizar}
                   onClick={() => void finalizarPedido()}
@@ -197,25 +230,12 @@ export function TelaDeCarrinho({ cliente }: PropsDaTela) {
                   {finalizando ? 'Finalizando…' : 'Finalizar pedido'}
                 </Botao>
                 {motivoDoBloqueio ? (
-                  <p className="text-sm text-tinta-media">{motivoDoBloqueio}</p>
+                  <p className="text-base text-tinta-media">
+                    {motivoDoBloqueio}
+                  </p>
                 ) : null}
-              </div>
+              </Cartao>
             </div>
-          </div>
-
-          <div className="sticky bottom-0 -mx-4 mt-6 flex items-center justify-between gap-4 border-t border-borda bg-superficie px-4 py-3 shadow-carta-media sm:-mx-6 sm:px-6 lg:hidden">
-            <div>
-              <p className="text-xs text-tinta-media">Total</p>
-              <Preco centavos={total} tamanho="medio" />
-            </div>
-            <Botao
-              tamanho="grande"
-              carregando={finalizando}
-              disabled={!podeFinalizar}
-              onClick={() => void finalizarPedido()}
-            >
-              {finalizando ? 'Finalizando…' : 'Finalizar pedido'}
-            </Botao>
           </div>
         </>
       ) : null}
@@ -245,23 +265,28 @@ function ItemDoCarrinhoCartao({
   const url = urlDaImagemDoProduto(produto);
 
   return (
-    <div className="flex gap-4 rounded-card border border-borda bg-superficie p-4 shadow-carta">
+    <li className="flex min-w-0 gap-4 px-5 py-5 sm:gap-5 sm:px-7">
       <Miniatura produto={produto} url={url} />
 
-      <div className="flex flex-1 flex-col gap-2">
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
         <Link
           to={`/produtos/${produto.id}`}
-          className="font-semibold text-tinta hover:underline"
+          className="inline-flex min-h-12 items-center break-words text-lg font-semibold leading-snug text-tinta hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-marca"
         >
           {produto.nome}
         </Link>
-        <Preco centavos={produto.precoEmCentavos} tamanho="pequeno" />
+        <p className="text-base text-tinta-media">
+          Preço por unidade:{' '}
+          <span className="font-semibold tabular-nums text-tinta">
+            {formatarCentavos(produto.precoEmCentavos)}
+          </span>
+        </p>
 
-        <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-col gap-2">
             <label
               htmlFor={`quantidade-${produto.id}`}
-              className="text-sm text-tinta-media"
+              className="text-base text-tinta-media"
             >
               Quantidade
               <span className="sr-only"> de {produto.nome}</span>
@@ -272,7 +297,7 @@ function ItemDoCarrinhoCartao({
               min={1}
               max={produto.estoque}
               value={quantidade}
-              className="h-9 w-16 rounded-card border border-borda-forte bg-superficie px-2 text-sm text-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
+              className="h-13 w-24 rounded-card border border-borda-forte bg-superficie px-3 text-lg text-tinta focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-marca"
               onChange={(evento) => {
                 const valor = Number(evento.target.value);
                 if (!Number.isInteger(valor)) return;
@@ -283,16 +308,20 @@ function ItemDoCarrinhoCartao({
             />
           </div>
 
-          <Preco
-            centavos={produto.precoEmCentavos * quantidade}
-            tamanho="pequeno"
-          />
+          <div className="ml-auto text-right">
+            <p className="text-base text-tinta-media">Subtotal do produto</p>
+            <Preco
+              centavos={produto.precoEmCentavos * quantidade}
+              tamanho="pequeno"
+            />
+          </div>
         </div>
 
         <div>
           <Botao
             variante="perigo"
             tamanho="pequeno"
+            className="-ml-3"
             aria-label={`Remover ${produto.nome}`}
             onClick={aoRemover}
           >
@@ -300,7 +329,7 @@ function ItemDoCarrinhoCartao({
           </Botao>
         </div>
       </div>
-    </div>
+    </li>
   );
 }
 
@@ -318,14 +347,14 @@ function Miniatura({ produto, url }: PropsDaMiniatura) {
         width={80}
         height={80}
         loading="lazy"
-        className="h-20 w-20 flex-shrink-0 rounded-pequeno border border-borda bg-superficie-sutil object-cover"
+        className="size-16 shrink-0 rounded-pequeno border border-borda bg-superficie-sutil object-cover sm:size-24"
       />
     );
   }
   return (
     <div
       aria-hidden="true"
-      className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-pequeno border border-borda bg-superficie-sutil text-2xl font-extrabold text-marca"
+      className="flex size-16 shrink-0 items-center justify-center rounded-pequeno border border-borda bg-superficie-sutil text-2xl font-bold text-marca/70 sm:size-24"
     >
       {produto.nome.charAt(0).toUpperCase()}
     </div>
@@ -349,10 +378,8 @@ interface PropsDoResumo {
 // ---------------------------------------------
 // Resumo do checkout
 // Uma única instância na coluna lateral (sticky no desktop, em fluxo logo
-// abaixo dos itens no mobile) — o botão "Finalizar pedido" fica escondido
-// aqui em telas estreitas porque a barra fixa no rodapé (fora deste
-// componente) já oferece a mesma ação sem duplicar o alvo para leitores de
-// tela.
+// abaixo dos itens no mobile). O total e a ação de finalizar ficam juntos,
+// no fluxo do documento, sem uma barra fixa cobrindo campos ou mensagens.
 // ---------------------------------------------
 function ResumoDoCheckout({
   subtotal,
@@ -373,57 +400,73 @@ function ResumoDoCheckout({
 
   return (
     <>
-      <h2 className="text-lg font-semibold text-tinta">Resumo</h2>
+      <h2 className="text-2xl font-bold text-tinta">Resumo do pedido</h2>
 
-      <div>
-        <h3 className="mb-2 text-sm font-medium text-tinta">Entregar em</h3>
+      <div className="min-w-0">
         {carregandoEnderecos ? (
           <p role="status">Carregando endereços…</p>
         ) : enderecos.length === 0 ? (
-          <p className="text-sm text-tinta-media">
+          <p className="text-base text-tinta-media">
             Você ainda não tem um endereço cadastrado.{' '}
             <Link
               to="/enderecos"
-              className="font-semibold text-acento underline"
+              className="font-semibold text-marca underline underline-offset-4 hover:text-acento-escuro focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
             >
               Cadastrar endereço
             </Link>
           </p>
         ) : (
-          <Selecao
-            rotulo="Endereço"
-            value={enderecoSelecionadoId ?? ''}
-            onChange={(evento) =>
-              selecionarEndereco(Number(evento.target.value))
-            }
-            className="focus-visible:outline-acento"
-          >
-            {enderecos.map((endereco) => (
-              <option key={endereco.id} value={endereco.id}>
-                {endereco.apelido} — {endereco.logradouro}, {endereco.numero},{' '}
-                {endereco.cidade}/{endereco.uf}
-              </option>
-            ))}
-          </Selecao>
+          <>
+            <Selecao
+              rotulo="Endereço de entrega"
+              value={enderecoSelecionadoId ?? ''}
+              onChange={(evento) =>
+                selecionarEndereco(Number(evento.target.value))
+              }
+            >
+              {enderecos.map((endereco) => (
+                <option key={endereco.id} value={endereco.id}>
+                  {endereco.apelido}
+                </option>
+              ))}
+            </Selecao>
+            {enderecos
+              .filter((endereco) => endereco.id === enderecoSelecionadoId)
+              .map((endereco) => (
+                <div
+                  key={endereco.id}
+                  className="mt-3 break-words rounded-pequeno bg-superficie-sutil px-4 py-3 text-base leading-relaxed text-tinta-media"
+                >
+                  <p>{endereco.destinatario}</p>
+                  <p>
+                    {endereco.logradouro}, {endereco.numero}
+                    {endereco.complemento ? `, ${endereco.complemento}` : ''}
+                  </p>
+                  <p>
+                    {endereco.bairro} — {endereco.cidade}/{endereco.uf}
+                  </p>
+                  <p>CEP {endereco.cep}</p>
+                </div>
+              ))}
+          </>
         )}
       </div>
 
       {enderecoSelecionadoId ? (
         <div>
-          <h3 className="mb-2 text-sm font-medium text-tinta">Frete</h3>
           {erroDeFrete ? <Aviso tipo="erro">{erroDeFrete}</Aviso> : null}
           {!erroDeFrete && carregandoFrete ? (
             <p role="status">Calculando frete…</p>
           ) : null}
           {!erroDeFrete && !carregandoFrete && opcoesDeFrete.length > 0 ? (
             <fieldset className="flex flex-col gap-2 border-none p-0 m-0">
-              <legend className="mb-1 text-sm font-medium text-tinta">
-                Modalidade
+              <legend className="mb-2 text-lg font-semibold text-tinta">
+                Forma de entrega
               </legend>
               {opcoesDeFrete.map((opcao) => (
                 <label
                   key={opcao.modalidade}
-                  className="flex cursor-pointer items-center gap-2 text-sm text-tinta"
+                  className="flex min-h-14 cursor-pointer items-center gap-3 rounded-card border border-borda-forte px-4 py-3 text-base text-tinta transition-colors hover:bg-superficie-sutil has-checked:border-acento has-checked:bg-acento-suave has-checked:ring-1 has-checked:ring-acento has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-marca"
                 >
                   <input
                     type="radio"
@@ -431,29 +474,35 @@ function ResumoDoCheckout({
                     value={opcao.modalidade}
                     checked={modalidadeSelecionada === opcao.modalidade}
                     onChange={() => selecionarModalidade(opcao.modalidade)}
-                    className="accent-acento focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
+                    className="size-5 shrink-0 accent-acento focus-visible:outline-none"
                   />
-                  {opcao.modalidade} — {formatarCentavos(opcao.custoEmCentavos)}{' '}
-                  — até {opcao.prazoEmDiasUteis} dias úteis
+                  <span>
+                    <strong>
+                      {opcao.modalidade} —{' '}
+                      {formatarCentavos(opcao.custoEmCentavos)}
+                    </strong>
+                    <br />
+                    Até {opcao.prazoEmDiasUteis} dias úteis
+                  </span>
                 </label>
               ))}
             </fieldset>
           ) : null}
         </div>
       ) : (
-        <p className="text-sm text-tinta-media">
+        <p className="text-base text-tinta-media">
           Frete calculado após escolher o endereço.
         </p>
       )}
 
-      <dl className="flex flex-col gap-1 border-t border-borda pt-3 text-sm">
-        <div className="flex justify-between">
+      <dl className="flex flex-col gap-3 border-t border-borda pt-5 text-lg">
+        <div className="flex flex-wrap justify-between gap-3">
           <dt className="text-tinta-media">Subtotal</dt>
           <dd>
             <Preco centavos={subtotal} tamanho="pequeno" />
           </dd>
         </div>
-        <div className="flex justify-between">
+        <div className="flex flex-wrap justify-between gap-3">
           <dt className="text-tinta-media">Frete</dt>
           <dd>
             {opcaoSelecionada ? (
@@ -466,7 +515,7 @@ function ResumoDoCheckout({
             )}
           </dd>
         </div>
-        <div className="flex justify-between text-base font-semibold text-tinta">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-borda pt-5 text-2xl font-bold text-tinta">
           <dt>Total</dt>
           <dd>
             <Preco centavos={total} tamanho="medio" />
@@ -487,7 +536,7 @@ function EsqueletoDoCarrinho() {
     <div
       role="status"
       aria-label="Carregando carrinho"
-      className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-12"
+      className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10"
     >
       <div className="flex flex-col gap-4 lg:col-span-7">
         <Esqueleto className="h-28 w-full" />

@@ -29,19 +29,19 @@ export function Paginacao({
       <Botao
         variante="secundario"
         tamanho="pequeno"
-        className="min-h-11 focus-visible:outline-acento lg:min-h-9"
+        className="focus-visible:outline-acento"
         disabled={pagina <= 1}
         onClick={() => aoMudar(pagina - 1)}
       >
         Anterior
       </Botao>
-      <span className="text-sm text-tinta-media">
+      <span className="text-base text-tinta-media">
         Página {pagina} de {totalDePaginas}
       </span>
       <Botao
         variante="secundario"
         tamanho="pequeno"
-        className="min-h-11 focus-visible:outline-acento lg:min-h-9"
+        className="focus-visible:outline-acento"
         disabled={pagina >= totalDePaginas}
         onClick={() => aoMudar(pagina + 1)}
       >

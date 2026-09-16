@@ -28,7 +28,7 @@ export function TelaDeDashboardAdmin({ cliente }: PropsDaTela) {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-tinta">Painel administrativo</h1>
+      <h1 className="text-balance text-2xl font-bold text-tinta">Painel administrativo</h1>
 
       {erro ? (
         <div className="mt-4">
@@ -54,7 +54,7 @@ export function TelaDeDashboardAdmin({ cliente }: PropsDaTela) {
             <Link
               key={cartao.chave}
               to={cartao.para}
-              className="flex flex-col gap-2 rounded-card border border-borda bg-superficie p-6 shadow-carta transition-shadow hover:shadow-carta-media"
+              className="flex flex-col gap-2 rounded-card border border-borda bg-superficie p-6 shadow-carta transition-shadow hover:shadow-carta-media focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
             >
               <span className="text-3xl font-bold tabular-nums text-tinta">
                 {metricas[cartao.chave]}

@@ -37,7 +37,7 @@ export function Vitrine({ cliente, titulo, ordenarPor }: PropsDaVitrine) {
         </h2>
         <Link
           to={destino}
-          className="inline-flex min-h-11 items-center rounded-pequeno px-2 text-sm font-semibold underline decoration-borda-forte underline-offset-4 hover:decoration-acento focus-visible:outline-2 focus-visible:outline-acento"
+          className="inline-flex min-h-12 items-center rounded-pequeno px-2 text-base font-semibold underline decoration-borda-forte underline-offset-4 hover:decoration-acento focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
         >
           Ver todos
         </Link>
@@ -50,6 +50,7 @@ export function Vitrine({ cliente, titulo, ordenarPor }: PropsDaVitrine) {
           produtos={produtos}
           carregando={carregando}
           quantidadeDeEsqueletos={8}
+          largura="total"
         />
       </div>
     </section>

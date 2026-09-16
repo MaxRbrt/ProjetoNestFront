@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Categoria, FiltroDeProdutos } from '../../api/produtos';
-import { Botao } from '../../ui/indice';
+import { Botao, Cartao, classesDeBotao } from '../../ui/indice';
 
 interface PropsDoFiltro {
   categorias: Categoria[];
@@ -47,15 +47,13 @@ export function FiltroDeProdutosView({
 
   const conteudo = (
     <div className="flex flex-col gap-2">
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-tinta-media">
-        Categorias
-      </h2>
+      <h2 className="mb-1 px-4 text-lg font-semibold text-tinta">Categorias</h2>
       {[{ id: null, nome: 'Todas' }, ...categorias].map((categoria) => (
         <button
           key={categoria.id ?? 'todas'}
           type="button"
           aria-pressed={filtro.categoria === categoria.id}
-          className={`min-h-11 rounded-card px-3 py-2 text-left text-sm break-words focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento ${filtro.categoria === categoria.id ? 'bg-marca text-white font-semibold' : 'text-tinta hover:bg-superficie-sutil'}`}
+          className={`min-h-12 rounded-pequeno border-l-4 px-4 py-2.5 text-left text-lg break-words transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca ${filtro.categoria === categoria.id ? 'border-acento bg-acento-suave font-semibold text-acento-escuro' : 'border-transparent text-tinta hover:bg-superficie-sutil'}`}
           onClick={() =>
             aplicar({ ...filtro, categoria: categoria.id, pagina: 1 })
           }
@@ -90,13 +88,15 @@ export function FiltroDeProdutosView({
         aria-label="Filtros de produtos"
         className="hidden w-64 shrink-0 lg:block"
       >
-        {conteudo}
+        <Cartao espaco="compacto" className="lg:sticky lg:top-6">
+          {conteudo}
+        </Cartao>
       </aside>
       <div className="lg:hidden">
         <button
           ref={gatilho}
           type="button"
-          className="min-h-11 rounded-card border border-borda-forte bg-superficie px-6 font-semibold text-tinta focus-visible:outline-2 focus-visible:outline-acento"
+          className={classesDeBotao({ variante: 'secundario' })}
           aria-haspopup="dialog"
           aria-expanded={aberto}
           onClick={() => setAberto(true)}
@@ -117,15 +117,18 @@ export function FiltroDeProdutosView({
           }}
         >
           <div
-            className="flex h-full w-72 max-w-[85vw] flex-col gap-6 overflow-y-auto bg-superficie p-4 shadow-carta-media"
+            className="flex h-full w-96 max-w-full flex-col gap-6 overflow-y-auto bg-superficie p-5 shadow-carta-alta"
             style={{ overscrollBehavior: 'contain' }}
           >
             <div className="flex items-center justify-between gap-3">
-              <span className="font-semibold text-tinta">Filtros</span>
+              <span className="text-xl font-bold text-tinta">Filtros</span>
               <button
                 ref={botaoFechar}
                 type="button"
-                className="min-h-11 rounded-card px-3 text-tinta focus-visible:outline-2 focus-visible:outline-acento"
+                className={classesDeBotao({
+                  variante: 'secundario',
+                  tamanho: 'pequeno',
+                })}
                 onClick={fechar}
                 aria-label="Fechar filtros"
               >

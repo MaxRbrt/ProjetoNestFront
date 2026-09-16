@@ -44,7 +44,7 @@ export function TelaDeVerificacao() {
         <span className="size-2.5 animate-pulsar-ponto rounded-pilula bg-acento [animation-delay:150ms]" />
         <span className="size-2.5 animate-pulsar-ponto rounded-pilula bg-acento [animation-delay:300ms]" />
       </span>
-      <span className="text-sm text-tinta-suave">Verificando sessão…</span>
+      <span className="text-lg text-tinta-media">Verificando sessão…</span>
     </div>
   );
 }

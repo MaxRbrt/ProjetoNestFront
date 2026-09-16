@@ -1,8 +1,8 @@
 import { formatarCentavos } from '../utils/dinheiro';
 
 const TAMANHOS = {
-  pequeno: 'text-base',
-  medio: 'text-xl',
+  pequeno: 'text-lg',
+  medio: 'text-2xl',
   grande: 'text-3xl',
 } as const;
 
@@ -19,7 +19,7 @@ interface PropsDoPreco {
 export function Preco({ centavos, tamanho = 'medio' }: PropsDoPreco) {
   return (
     <span
-      className={`font-bold tabular-nums text-acento-escuro ${TAMANHOS[tamanho]}`}
+      className={`font-bold tabular-nums text-tinta ${TAMANHOS[tamanho]}`}
     >
       {formatarCentavos(centavos)}
     </span>

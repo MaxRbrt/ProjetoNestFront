@@ -5,7 +5,7 @@ import { ApiError } from '../../api/cliente';
 import { removerCategoria } from '../../api/catalogo-admin';
 import { Aviso, Botao, classesDeBotao } from '../../ui/indice';
 import { useListaDeCategoriasAdmin } from '../../hooks/use-lista-de-categorias-admin';
-import { Paginacao } from '../products/paginacao';
+import { Paginacao } from '../produtos/paginacao';
 
 interface PropsDaTela {
   cliente: ApiClient;
@@ -43,10 +43,10 @@ export function TelaDeCategoriasAdmin({ cliente }: PropsDaTela) {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-tinta">Categorias</h1>
+        <h1 className="text-balance text-2xl font-bold text-tinta">Categorias</h1>
         <Link
           to="/admin/categorias/novo"
-          className={classesDeBotao({ tamanho: 'pequeno' })}
+          className={classesDeBotao({ tamanho: 'pequeno', className: 'min-h-11 lg:min-h-9' })}
         >
           Nova categoria
         </Link>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ApiClient } from '../api/cliente';
+import { ApiError } from '../api/cliente';
 import { buscarProduto } from '../api/produtos';
 import type { Produto } from '../api/produtos';
 import type { ItemDoCarrinho } from '../auth/contexto-do-carrinho';
@@ -13,6 +14,7 @@ interface ResultadoDasLinhas {
   linhas: LinhaDoCarrinho[];
   carregando: boolean;
   erroDeCarga: string | null;
+  recarregar: () => void;
 }
 
 // ---------------------------------------------
@@ -30,6 +32,7 @@ export function useLinhasDoCarrinho(
   const [linhas, setLinhas] = useState<LinhaDoCarrinho[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erroDeCarga, setErroDeCarga] = useState<string | null>(null);
+  const [tentativa, setTentativa] = useState(0);
 
   useEffect(() => {
     if (itens.length === 0) {
@@ -52,6 +55,23 @@ export function useLinhasDoCarrinho(
       ),
     ).then((resultados) => {
       if (cancelado) return;
+      // Só 404 significa produto removido. Falha de rede não é carrinho vazio
+      // e não pode permitir um checkout com apenas parte dos preços carregados.
+      const falhou = resultados.some(
+        (resultado) =>
+          resultado.status === 'rejected' &&
+          !(
+            resultado.reason instanceof ApiError &&
+            resultado.reason.status === 404
+          ),
+      );
+      if (falhou) {
+        setErroDeCarga(
+          'Não foi possível carregar os produtos do carrinho. Tente novamente.',
+        );
+        setCarregando(false);
+        return;
+      }
       const linhasCarregadas = resultados
         .filter(
           (resultado): resultado is PromiseFulfilledResult<LinhaDoCarrinho> =>
@@ -66,7 +86,12 @@ export function useLinhasDoCarrinho(
       cancelado = true;
       controlador.abort();
     };
-  }, [cliente, itens]);
+  }, [cliente, itens, tentativa]);
 
-  return { linhas, carregando, erroDeCarga };
+  return {
+    linhas,
+    carregando,
+    erroDeCarga,
+    recarregar: () => setTentativa((atual) => atual + 1),
+  };
 }

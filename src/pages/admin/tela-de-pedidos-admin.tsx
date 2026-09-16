@@ -9,7 +9,7 @@ import {
 } from '../../api/pedidos';
 import type { Paginado } from '../../api/produtos';
 import { Aviso, Botao, EtiquetaDeSituacao, Selecao } from '../../ui/indice';
-import { Paginacao } from '../products/paginacao';
+import { Paginacao } from '../produtos/paginacao';
 
 const SITUACOES: Record<SituacaoDoPedido, string> = {
   PENDENTE: 'Pendente',
@@ -71,7 +71,7 @@ export function TelaDePedidosAdmin({ cliente }: { cliente: ApiClient }) {
     <section>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-tinta">Pedidos</h1>
+          <h1 className="text-balance text-2xl font-bold text-tinta">Pedidos</h1>
           <p className="mt-1 text-sm text-tinta-media">
             Acompanhe os pedidos e registre pagamentos ou cancelamentos.
           </p>
@@ -237,7 +237,7 @@ function ListaDePedidos({
                 <td className="px-4 py-3">
                   <Link
                     to={`/admin/pedidos/${pedido.id}${consulta ? `?${consulta}` : ''}`}
-                    className="font-medium text-acento-escuro hover:underline"
+                    className="font-medium text-acento-escuro hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento"
                   >
                     #{pedido.id}
                   </Link>

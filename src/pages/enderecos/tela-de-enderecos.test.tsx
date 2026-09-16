@@ -120,13 +120,16 @@ describe('Tela de endereços', () => {
     expect(campoApelido.value).toBe('Casa');
 
     fireEvent.change(campoApelido, { target: { value: 'Casa nova' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar endereço' }));
 
     await waitFor(() => expect(cliente.patch).toHaveBeenCalledTimes(1));
     expect(cliente.patch).toHaveBeenCalledWith(
       '/addresses/1',
       expect.objectContaining({ apelido: 'Casa nova' }),
     );
+    expect(
+      await screen.findByText('Endereço salvo com sucesso.'),
+    ).toBeInTheDocument();
   });
 
   it('erro da API ao salvar mantém o formulário preenchido e mostra a mensagem', async () => {
@@ -142,7 +145,7 @@ describe('Tela de endereços', () => {
     const campoApelido = (await screen.findByLabelText(
       'Apelido',
     )) as HTMLInputElement;
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar endereço' }));
 
     await screen.findByText('CEP inválido.');
     expect(campoApelido.value).toBe('Casa');

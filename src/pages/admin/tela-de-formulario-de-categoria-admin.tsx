@@ -75,7 +75,7 @@ export function TelaDeFormularioDeCategoriaAdmin({ cliente }: PropsDaTela) {
 
   return (
     <div className="max-w-xl">
-      <h1 className="text-2xl font-bold text-tinta">
+      <h1 className="text-balance text-2xl font-bold text-tinta">
         {emEdicao ? 'Editar categoria' : 'Nova categoria'}
       </h1>
 

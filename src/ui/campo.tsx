@@ -28,8 +28,8 @@ export function Campo({
   const idDaAjuda = `${idDoCampo}-ajuda`;
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={idDoCampo} className="text-sm font-medium text-tinta">
+    <div className="flex min-w-0 flex-col gap-2">
+      <label htmlFor={idDoCampo} className="text-lg font-semibold text-tinta">
         {rotulo}
       </label>
       <input
@@ -37,14 +37,14 @@ export function Campo({
         id={idDoCampo}
         aria-invalid={erro ? 'true' : undefined}
         aria-describedby={erro ? idDoErro : ajuda ? idDaAjuda : undefined}
-        className={`h-11 rounded-card border bg-superficie px-3.5 text-[0.95rem] text-tinta placeholder:text-tinta-suave focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca disabled:cursor-not-allowed disabled:bg-superficie-sutil disabled:text-tinta-suave ${erro ? 'border-erro' : 'border-borda-forte'} ${className}`}
+        className={`min-h-13 w-full min-w-0 rounded-card border bg-superficie px-3.5 text-lg text-tinta placeholder:text-tinta-media focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-marca disabled:cursor-not-allowed disabled:bg-superficie-sutil disabled:text-tinta-suave ${erro ? 'border-erro' : 'border-borda-forte'} ${className}`}
       />
       {erro ? (
-        <span id={idDoErro} className="text-sm text-erro">
+        <span id={idDoErro} className="text-base text-erro">
           {erro}
         </span>
       ) : ajuda ? (
-        <span id={idDaAjuda} className="text-sm text-tinta-suave">
+        <span id={idDaAjuda} className="text-base text-tinta-media">
           {ajuda}
         </span>
       ) : null}
