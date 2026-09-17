@@ -1,6 +1,8 @@
 import { centavosParaReais, reaisParaCentavos } from '../../utils/dinheiro';
 import {
   useEffect,
+  useId,
+  useRef,
   useState,
   type Dispatch,
   type FormEvent,
@@ -16,9 +18,24 @@ import {
   removerImagemDoProduto,
   type DadosDeProduto,
 } from '../../api/catalogo-admin';
-import { buscarProduto, urlDaImagemDoProduto, type Produto } from '../../api/produtos';
-import { Aviso, Botao, Campo, Selecao, classesDeBotao } from '../../ui/indice';
+import {
+  buscarProduto,
+  urlDaImagemDoProduto,
+  type Produto,
+} from '../../api/produtos';
+import {
+  Aviso,
+  Botao,
+  Campo,
+  Cartao,
+  Esqueleto,
+  Etiqueta,
+  Selecao,
+  classesDeBotao,
+} from '../../ui/indice';
+import { CabecalhoDaPagina } from '../../layout/cabecalho-da-pagina';
 import { useCategorias } from '../../hooks/use-categorias';
+import { ImagemDoProdutoAdmin } from './imagem-do-produto-admin';
 
 interface PropsDaTela {
   cliente: ApiClient;
@@ -47,6 +64,35 @@ const CAMPOS_VAZIOS: CamposDoProduto = {
   estoque: '',
 };
 
+function validarCampos(
+  campos: CamposDoProduto,
+): Partial<Record<keyof CamposDoProduto, string>> {
+  const erros: Partial<Record<keyof CamposDoProduto, string>> = {};
+  if (!campos.nome.trim()) erros.nome = 'Informe o nome do produto.';
+  const preco = reaisParaCentavos(campos.preco);
+  if (
+    !/^\d+(?:[.,]\d{1,2})?$/.test(campos.preco.trim()) ||
+    preco === null ||
+    !Number.isSafeInteger(preco) ||
+    preco <= 0
+  ) {
+    erros.preco = 'Informe um preço maior que zero, como 19,90.';
+  }
+  if (
+    !/^\d+$/.test(campos.estoque) ||
+    !Number.isSafeInteger(Number(campos.estoque))
+  ) {
+    erros.estoque = 'Informe uma quantidade inteira, igual ou maior que zero.';
+  }
+  if (
+    !Number.isSafeInteger(Number(campos.categoriaId)) ||
+    Number(campos.categoriaId) <= 0
+  ) {
+    erros.categoriaId = 'Selecione uma categoria.';
+  }
+  return erros;
+}
+
 // ---------------------------------------------
 // Motivo legível de uma falha de upload
 // A mensagem do backend já vem em PT-BR e termina em ponto; o ponto final é
@@ -60,15 +106,9 @@ function motivoDaFalhaDeImagem(falha: unknown): string {
 
 // ---------------------------------------------
 // Aviso vindo da navegação (falha de upload logo após criar)
-// A navegação para a edição troca só os parâmetros de rota, não desmonta
-// o componente (mesmo slot, mesmo tipo dentro de <Routes>) — um estado
-// inicial de useState nunca veria esse aviso, porque o inicializador só
-// roda na montagem real. Por isso o aviso entra por efeito, reagindo à
-// mudança do próprio location.state. O state é consumido uma única vez:
-// depois de fixar o texto em `erro`, a entrada do histórico é substituída
-// sem o state, para que apertar Voltar depois de corrigir e salvar não
-// traga o aviso velho de volta sobre um produto já certo; a execução
-// seguinte do efeito, já com o state limpo, não faz nada.
+// Consome location.state uma vez e limpa a entrada do histórico para não
+// repetir o aviso ao voltar. O formulário tem chave por id: mudar de produto
+// também descarta campos, arquivo e erros que pertenciam à edição anterior.
 // ---------------------------------------------
 function useAvisoDaNavegacao(
   emEdicao: boolean,
@@ -98,8 +138,12 @@ function useProdutoEmEdicao(
   idDaRota: string | undefined,
   setCampos: Dispatch<SetStateAction<CamposDoProduto>>,
   setProduto: Dispatch<SetStateAction<Produto | null>>,
-  setErro: Dispatch<SetStateAction<string | null>>,
 ) {
+  const [tentativa, setTentativa] = useState(0);
+  const [carga, setCarga] = useState<{
+    tentativa: number;
+    erro: string | null;
+  } | null>(null);
   useEffect(() => {
     if (idDaRota === undefined) return;
 
@@ -116,43 +160,23 @@ function useProdutoEmEdicao(
           estoque: String(produtoCarregado.estoque),
         });
         setProduto(produtoCarregado);
+        setCarga({ tentativa, erro: null });
       })
       .catch(() => {
-        if (!cancelado) setErro('Não foi possível carregar o produto.');
+        if (!cancelado)
+          setCarga({ tentativa, erro: 'Não foi possível carregar o produto.' });
       });
 
     return () => {
       cancelado = true;
       controlador.abort();
     };
-  }, [cliente, idDaRota, setCampos, setProduto, setErro]);
-}
-
-// ---------------------------------------------
-// Pré-visualização do arquivo anexado
-// jsdom não implementa URL.createObjectURL/revokeObjectURL nativamente
-// (os testes fazem stub); em produção, a URL de objeto precisa ser
-// revogada no cleanup deste efeito — senão cada troca de arquivo vaza
-// memória enquanto a tela ficar montada.
-// ---------------------------------------------
-function usePreviaDoArquivo(arquivo: File | null): string | null {
-  const [previa, setPrevia] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!arquivo) {
-      setPrevia(null);
-      return;
-    }
-
-    const url = URL.createObjectURL(arquivo);
-    setPrevia(url);
-
-    return () => {
-      URL.revokeObjectURL(url);
-    };
-  }, [arquivo]);
-
-  return previa;
+  }, [cliente, idDaRota, tentativa, setCampos, setProduto]);
+  return {
+    carregando: idDaRota !== undefined && carga?.tentativa !== tentativa,
+    erro: carga?.tentativa === tentativa ? carga.erro : null,
+    recarregar: () => setTentativa((atual) => atual + 1),
+  };
 }
 
 // ---------------------------------------------
@@ -181,55 +205,109 @@ function usePreviaDoArquivo(arquivo: File | null): string | null {
 // ---------------------------------------------
 export function TelaDeFormularioDeProdutoAdmin({ cliente }: PropsDaTela) {
   const parametros = useParams<{ id?: string }>();
+  return (
+    <FormularioDeProduto
+      key={parametros.id ?? 'novo'}
+      cliente={cliente}
+      idDaRota={parametros.id}
+    />
+  );
+}
+
+function FormularioDeProduto({
+  cliente,
+  idDaRota,
+}: PropsDaTela & { idDaRota?: string }) {
+  const idDoFormulario = useId();
   const navegar = useNavigate();
-  const { categorias } = useCategorias(cliente);
-  const emEdicao = parametros.id !== undefined;
+  const {
+    categorias,
+    carregando: carregandoCategorias,
+    erro: erroDasCategorias,
+    recarregar: recarregarCategorias,
+  } = useCategorias(cliente);
+  const emEdicao = idDaRota !== undefined;
 
   const [campos, setCampos] = useState<CamposDoProduto>(CAMPOS_VAZIOS);
   const [produto, setProduto] = useState<Produto | null>(null);
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [removendoImagem, setRemovendoImagem] = useState(false);
+  const [erroDaImagem, setErroDaImagem] = useState<string | null>(null);
+  const [sucesso, setSucesso] = useState<string | null>(null);
+  const [validacaoVisivel, setValidacaoVisivel] = useState(false);
+  const formulario = useRef<HTMLFormElement>(null);
+  const avisoDeErro = useRef<HTMLDivElement>(null);
+  const errosDosCampos = validarCampos(campos);
+  useEffect(() => {
+    if (erro) avisoDeErro.current?.focus();
+  }, [erro]);
 
   useAvisoDaNavegacao(emEdicao, setErro);
-  useProdutoEmEdicao(cliente, parametros.id, setCampos, setProduto, setErro);
-  const previa = usePreviaDoArquivo(arquivo);
+  const cargaDoProduto = useProdutoEmEdicao(
+    cliente,
+    idDaRota,
+    setCampos,
+    setProduto,
+  );
   const urlDaImagemAtual =
     emEdicao && produto ? urlDaImagemDoProduto(produto) : null;
+  const ocupado = salvando || removendoImagem;
+  const bloqueado =
+    ocupado ||
+    Boolean(erroDaImagem) ||
+    cargaDoProduto.carregando ||
+    Boolean(cargaDoProduto.erro) ||
+    carregandoCategorias ||
+    Boolean(erroDasCategorias) ||
+    categorias.length === 0;
 
   function alterarCampo(campo: keyof CamposDoProduto, valor: string) {
     setCampos((atuais) => ({ ...atuais, [campo]: valor }));
   }
 
   async function aoRemoverImagem() {
-    if (!produto) return;
-
+    if (!produto || ocupado) return;
+    setRemovendoImagem(true);
+    setErro(null);
+    setSucesso(null);
     try {
       const atualizado = await removerImagemDoProduto(cliente, produto.id);
       setProduto(atualizado);
+      setSucesso('Imagem removida do produto.');
     } catch (falha) {
       setErro(
         falha instanceof ApiError
           ? falha.message
           : 'Não foi possível remover a imagem.',
       );
+    } finally {
+      setRemovendoImagem(false);
     }
   }
 
   async function aoSalvar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
+    if (bloqueado) return;
     setErro(null);
-
+    setSucesso(null);
+    setValidacaoVisivel(true);
     const precoEmCentavos = reaisParaCentavos(campos.preco);
-    if (precoEmCentavos === null) {
-      setErro('Informe um preço válido, como 19,90.');
+    if (Object.keys(errosDosCampos).length || precoEmCentavos === null) {
+      const primeiroCampo = Object.keys(errosDosCampos)[0];
+      formulario.current
+        ?.querySelector<HTMLInputElement | HTMLSelectElement>(
+          `[name="${primeiroCampo}"]`,
+        )
+        ?.focus();
       return;
     }
 
     setSalvando(true);
 
     const dados: DadosDeProduto = {
-      nome: campos.nome,
+      nome: campos.nome.trim(),
       precoEmCentavos,
       categoriaId: Number(campos.categoriaId),
       estoque: Number(campos.estoque),
@@ -237,7 +315,7 @@ export function TelaDeFormularioDeProdutoAdmin({ cliente }: PropsDaTela) {
 
     try {
       if (emEdicao) {
-        const id = Number(parametros.id);
+        const id = Number(idDaRota);
         const atualizado = await atualizarProduto(cliente, id, dados);
         setProduto(atualizado);
 
@@ -251,7 +329,9 @@ export function TelaDeFormularioDeProdutoAdmin({ cliente }: PropsDaTela) {
             return;
           }
         }
-        navegar('/admin/produtos');
+        navegar('/admin/produtos', {
+          state: { sucesso: 'Produto atualizado com sucesso.' },
+        });
       } else {
         const criado = await criarProduto(cliente, dados);
 
@@ -268,7 +348,9 @@ export function TelaDeFormularioDeProdutoAdmin({ cliente }: PropsDaTela) {
             return;
           }
         }
-        navegar('/admin/produtos');
+        navegar('/admin/produtos', {
+          state: { sucesso: 'Produto cadastrado com sucesso.' },
+        });
       }
     } catch (falha) {
       setErro(
@@ -282,115 +364,304 @@ export function TelaDeFormularioDeProdutoAdmin({ cliente }: PropsDaTela) {
   }
 
   return (
-    <div className="max-w-xl">
-      <h1 className="text-balance text-2xl font-bold text-tinta">
-        {emEdicao ? 'Editar produto' : 'Novo produto'}
-      </h1>
+    <div className="mx-auto flex max-w-7xl flex-col gap-6">
+      <CabecalhoDaPagina
+        trilha={[
+          { rotulo: 'Produtos', para: '/admin/produtos' },
+          { rotulo: emEdicao ? 'Editar produto' : 'Novo produto' },
+        ]}
+        titulo={emEdicao ? 'Editar produto' : 'Novo produto'}
+        descricao={
+          emEdicao
+            ? 'Atualize as informações e a imagem do produto.'
+            : 'Prepare as informações do produto para o catálogo.'
+        }
+        acao={produto ? <Etiqueta>Produto #{produto.id}</Etiqueta> : undefined}
+      />
+
+      <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-y border-borda bg-fundo py-3">
+        <p className="hidden text-base text-tinta-media sm:block">
+          {salvando ? 'Salvando produto…' : 'Revise os dados antes de salvar.'}
+        </p>
+        <div className="grid w-full grid-cols-2 gap-3 sm:ml-auto sm:w-auto sm:flex">
+          <Botao
+            type="button"
+            variante="secundario"
+            disabled={ocupado}
+            onClick={() => navegar('/admin/produtos')}
+          >
+            Cancelar
+          </Botao>
+          <Botao
+            type="submit"
+            form={idDoFormulario}
+            carregando={salvando}
+            disabled={bloqueado}
+          >
+            {salvando
+              ? 'Salvando…'
+              : emEdicao
+                ? 'Salvar alterações'
+                : 'Salvar produto'}
+          </Botao>
+        </div>
+      </div>
 
       {erro ? (
-        <div className="mt-4">
+        <div
+          ref={avisoDeErro}
+          tabIndex={-1}
+          className="scroll-mt-32 rounded-card focus:outline-2 focus:outline-offset-4 focus:outline-erro"
+        >
           <Aviso>{erro}</Aviso>
         </div>
       ) : null}
-
-      <form
-        className="mt-6 flex flex-col gap-4 rounded-card border border-borda bg-superficie p-5 shadow-carta sm:p-6"
-        onSubmit={aoSalvar}
-      >
-        <Campo
-          rotulo="Nome"
-          value={campos.nome}
-          onChange={(evento) => alterarCampo('nome', evento.target.value)}
-          required
-        />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Campo
-            rotulo="Preço"
-            type="number"
-            step="0.01"
-            min="0"
-            inputMode="decimal"
-            value={campos.preco}
-            onChange={(evento) => alterarCampo('preco', evento.target.value)}
-            required
-          />
-          <Campo
-            rotulo="Estoque"
-            type="number"
-            min="0"
-            inputMode="numeric"
-            value={campos.estoque}
-            onChange={(evento) => alterarCampo('estoque', evento.target.value)}
-            required
-          />
-        </div>
-        <Selecao
-          rotulo="Categoria"
-          value={campos.categoriaId}
-          onChange={(evento) => alterarCampo('categoriaId', evento.target.value)}
-          required
-        >
-          <option value="" disabled>
-            Selecione
-          </option>
-          {categorias.map((categoria) => (
-            <option key={categoria.id} value={categoria.id}>
-              {categoria.nome}
-            </option>
-          ))}
-        </Selecao>
-
-        {urlDaImagemAtual ? (
-          <div className="flex flex-wrap items-center gap-4 rounded-card border border-borda bg-superficie-sutil p-3">
-            <img
-              className="size-32 rounded-pequeno bg-superficie object-contain"
-              src={urlDaImagemAtual}
-              width={128}
-              height={128}
-              alt="Imagem atual do produto"
-            />
-            <Botao
-              type="button"
-              variante="secundario"
-              tamanho="pequeno"
-              onClick={aoRemoverImagem}
-            >
-              Remover imagem
-            </Botao>
-          </div>
-        ) : null}
-
-        <Campo
-          rotulo="Imagem"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          ajuda="JPEG, PNG ou WebP."
-          className="py-2 file:mr-3 file:rounded-pequeno file:border-0 file:bg-superficie-sutil file:px-3 file:py-1 file:text-sm file:font-medium file:text-tinta"
-          onChange={(evento) => setArquivo(evento.target.files?.[0] ?? null)}
-        />
-
-        {previa ? (
-          <img
-            className="size-32 rounded-pequeno border border-borda bg-superficie-sutil object-contain"
-            src={previa}
-            width={128}
-            height={128}
-            alt="Pré-visualização da imagem selecionada"
-          />
-        ) : null}
-
-        <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
-          <Link
-            to="/admin/produtos"
-            className={classesDeBotao({ variante: 'fantasma' })}
-          >
-            Cancelar
-          </Link>
-          <Botao type="submit" carregando={salvando}>
-            Salvar
+      {sucesso ? <Aviso tipo="sucesso">{sucesso}</Aviso> : null}
+      {cargaDoProduto.carregando ? (
+        <Cartao className="flex flex-col gap-5">
+          <p role="status" className="text-base text-tinta-media">
+            Carregando produto…
+          </p>
+          <Esqueleto className="h-13 w-full" />
+          <Esqueleto className="h-52 w-full" />
+        </Cartao>
+      ) : cargaDoProduto.erro ? (
+        <Cartao className="flex flex-col items-start gap-4">
+          <Aviso>{cargaDoProduto.erro}</Aviso>
+          <Botao variante="secundario" onClick={cargaDoProduto.recarregar}>
+            Tentar novamente
           </Botao>
-        </div>
-      </form>
+        </Cartao>
+      ) : (
+        <form
+          id={idDoFormulario}
+          ref={formulario}
+          onSubmit={aoSalvar}
+          noValidate
+        >
+          <fieldset
+            disabled={ocupado}
+            className="grid min-w-0 gap-6 xl:grid-cols-3 [&_input]:scroll-mt-32 [&_select]:scroll-mt-32"
+          >
+            <legend className="sr-only">Dados do produto</legend>
+            <div className="flex min-w-0 flex-col gap-6 xl:col-span-2">
+              <Cartao
+                como="section"
+                aria-labelledby="informacoes-do-produto"
+                className="flex flex-col gap-6"
+              >
+                <div>
+                  <h2
+                    id="informacoes-do-produto"
+                    className="text-xl font-semibold text-tinta"
+                  >
+                    Informações principais
+                  </h2>
+                  <p className="mt-1 text-base text-tinta-media">
+                    Como o produto será identificado na loja.
+                  </p>
+                </div>
+                <Campo
+                  rotulo="Nome"
+                  name="nome"
+                  value={campos.nome}
+                  onChange={(evento) =>
+                    alterarCampo('nome', evento.target.value)
+                  }
+                  erro={validacaoVisivel ? errosDosCampos.nome : undefined}
+                  ajuda="Use um nome claro, que ajude a reconhecer o produto."
+                  required
+                />
+              </Cartao>
+
+              <ImagemDoProdutoAdmin
+                arquivo={arquivo}
+                urlAtual={urlDaImagemAtual}
+                erro={erroDaImagem}
+                removendo={removendoImagem}
+                aoSelecionar={(selecionado, falha) => {
+                  setArquivo(selecionado);
+                  setErroDaImagem(falha);
+                  setSucesso(null);
+                }}
+                aoRemover={aoRemoverImagem}
+              />
+
+              <Cartao
+                como="section"
+                aria-labelledby="venda-e-estoque"
+                className="flex flex-col gap-6"
+              >
+                <div>
+                  <h2
+                    id="venda-e-estoque"
+                    className="text-xl font-semibold text-tinta"
+                  >
+                    Preço e estoque
+                  </h2>
+                  <p className="mt-1 text-base text-tinta-media">
+                    Defina o valor de venda e a quantidade disponível.
+                  </p>
+                </div>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <Campo
+                    rotulo="Preço"
+                    name="preco"
+                    inputMode="decimal"
+                    value={campos.preco}
+                    onChange={(evento) =>
+                      alterarCampo('preco', evento.target.value)
+                    }
+                    erro={validacaoVisivel ? errosDosCampos.preco : undefined}
+                    ajuda="Valor em reais (R$). Ex.: 19,90."
+                    required
+                  />
+                  <Campo
+                    rotulo="Estoque"
+                    name="estoque"
+                    type="number"
+                    min="0"
+                    step="1"
+                    inputMode="numeric"
+                    value={campos.estoque}
+                    onChange={(evento) =>
+                      alterarCampo('estoque', evento.target.value)
+                    }
+                    erro={validacaoVisivel ? errosDosCampos.estoque : undefined}
+                    ajuda="Quantidade em unidades. Zero indica esgotado."
+                    required
+                  />
+                </div>
+              </Cartao>
+            </div>
+
+            <div className="flex min-w-0 flex-col gap-6">
+              <Cartao
+                como="section"
+                aria-labelledby="organizacao-do-produto"
+                className="flex flex-col gap-5"
+              >
+                <h2
+                  id="organizacao-do-produto"
+                  className="text-xl font-semibold text-tinta"
+                >
+                  Organização
+                </h2>
+                {carregandoCategorias ? (
+                  <p role="status" className="text-base text-tinta-media">
+                    Carregando categorias…
+                  </p>
+                ) : erroDasCategorias ? (
+                  <>
+                    <Aviso>{erroDasCategorias}</Aviso>
+                    <Botao
+                      type="button"
+                      variante="secundario"
+                      onClick={recarregarCategorias}
+                    >
+                      Tentar novamente
+                    </Botao>
+                  </>
+                ) : categorias.length === 0 ? (
+                  <>
+                    <p className="text-base text-tinta-media">
+                      Cadastre uma categoria para organizar o produto.
+                    </p>
+                    <Link
+                      to="/admin/categorias/novo"
+                      className={classesDeBotao({
+                        variante: 'secundario',
+                        tamanho: 'pequeno',
+                      })}
+                    >
+                      Cadastrar categoria
+                    </Link>
+                  </>
+                ) : (
+                  <Selecao
+                    rotulo="Categoria"
+                    name="categoriaId"
+                    value={campos.categoriaId}
+                    onChange={(evento) =>
+                      alterarCampo('categoriaId', evento.target.value)
+                    }
+                    erro={
+                      validacaoVisivel ? errosDosCampos.categoriaId : undefined
+                    }
+                    required
+                  >
+                    <option value="" disabled>
+                      Selecione uma categoria
+                    </option>
+                    {produto &&
+                    !categorias.some(
+                      (categoria) => categoria.id === produto.categoriaId,
+                    ) ? (
+                      <option value={produto.categoriaId}>
+                        Categoria #{produto.categoriaId}
+                      </option>
+                    ) : null}
+                    {categorias.map((categoria) => (
+                      <option key={categoria.id} value={categoria.id}>
+                        {categoria.nome}
+                      </option>
+                    ))}
+                  </Selecao>
+                )}
+              </Cartao>
+
+              <Cartao
+                como="section"
+                aria-labelledby="conferencia-do-produto"
+                className="flex flex-col gap-5"
+              >
+                <div>
+                  <h2
+                    id="conferencia-do-produto"
+                    className="text-xl font-semibold text-tinta"
+                  >
+                    Antes de salvar
+                  </h2>
+                  <p className="mt-1 text-base text-tinta-media">
+                    Nome, preço, estoque e categoria são obrigatórios.
+                  </p>
+                </div>
+                <ul className="divide-y divide-borda text-base">
+                  {(
+                    [
+                      ['nome', 'Nome'],
+                      ['preco', 'Preço'],
+                      ['estoque', 'Estoque'],
+                      ['categoriaId', 'Categoria'],
+                    ] as const
+                  ).map(([campo, rotulo]) => (
+                    <li
+                      key={campo}
+                      className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0 last:pb-0"
+                    >
+                      <span className="text-tinta">{rotulo}</span>
+                      <span
+                        className={
+                          errosDosCampos[campo]
+                            ? 'text-tinta-media'
+                            : 'font-medium text-sucesso'
+                        }
+                      >
+                        {errosDosCampos[campo] ? 'Pendente' : 'Preenchido'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="border-t border-borda pt-4 text-base text-tinta-media">
+                  {emEdicao
+                    ? 'Ao salvar, as alterações serão aplicadas ao catálogo.'
+                    : 'Ao salvar, o produto será incluído no catálogo.'}
+                </p>
+              </Cartao>
+            </div>
+          </fieldset>
+        </form>
+      )}
     </div>
   );
 }

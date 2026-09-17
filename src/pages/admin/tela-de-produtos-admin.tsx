@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { ApiClient } from '../../api/cliente';
 import { ApiError } from '../../api/cliente';
 import { removerProduto } from '../../api/catalogo-admin';
@@ -20,6 +20,21 @@ interface PropsDaTela {
 // veio — sem reescrever o que o backend já formulou.
 // ---------------------------------------------
 export function TelaDeProdutosAdmin({ cliente }: PropsDaTela) {
+  const localizacao = useLocation();
+  const navegar = useNavigate();
+  const [sucesso] = useState(() => {
+    const mensagem = (localizacao.state as { sucesso?: unknown } | null)
+      ?.sucesso;
+    return typeof mensagem === 'string' ? mensagem : null;
+  });
+  useEffect(() => {
+    if (localizacao.state?.sucesso) {
+      navegar(localizacao.pathname + localizacao.search, {
+        replace: true,
+        state: null,
+      });
+    }
+  }, [localizacao, navegar]);
   const [pagina, setPagina] = useState(1);
   const { produtos, carregando, erro, recarregar } = useListaDeProdutosAdmin(
     cliente,
@@ -50,12 +65,20 @@ export function TelaDeProdutosAdmin({ cliente }: PropsDaTela) {
         <h1 className="text-balance text-2xl font-bold text-tinta">Produtos</h1>
         <Link
           to="/admin/produtos/novo"
-          className={classesDeBotao({ tamanho: 'pequeno', className: 'min-h-11 lg:min-h-9' })}
+          className={classesDeBotao({
+            tamanho: 'pequeno',
+            className: 'min-h-11 lg:min-h-9',
+          })}
         >
           Novo produto
         </Link>
       </div>
 
+      {sucesso ? (
+        <div className="mt-4">
+          <Aviso tipo="sucesso">{sucesso}</Aviso>
+        </div>
+      ) : null}
       {erro ? (
         <div className="mt-4">
           <Aviso>{erro}</Aviso>

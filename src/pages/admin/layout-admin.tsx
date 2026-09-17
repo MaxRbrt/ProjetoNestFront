@@ -12,7 +12,7 @@ const LINKS = [
 // Casca do painel administrativo
 // Não monta o Cabecalho da loja: o painel tem topo e navegação próprios, sem
 // busca de catálogo nem link de conta. Barra lateral fixa em lg; no mobile a
-// mesma navegação vira uma faixa horizontal rolável abaixo do topo. Único
+// mesma navegação vira uma faixa que quebra linha abaixo do topo. Único
 // <main id="conteudo"> do painel, com o mesmo link "Pular para o conteúdo"
 // que o LayoutDaLoja oferece na loja.
 // ---------------------------------------------
@@ -28,29 +28,29 @@ export function LayoutAdmin() {
         Pular para o conteúdo
       </a>
 
-      <header className="flex items-center justify-between gap-4 border-b border-borda bg-superficie px-4 py-3 lg:px-6">
+      <header className="flex items-center justify-between gap-4 border-b border-borda bg-superficie px-4 py-2 lg:px-6">
         <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-pequeno bg-marca text-sm font-bold text-white">
+          <span className="flex size-10 items-center justify-center rounded-pequeno bg-acento text-base font-bold text-white">
             NX
           </span>
-          <span className="text-sm font-semibold text-tinta">Painel</span>
+          <span className="text-lg font-semibold text-tinta">Painel</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Link
             to="/"
-            className="flex min-h-11 items-center rounded-pequeno text-sm text-tinta-media hover:text-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento lg:min-h-0"
+            className="flex min-h-12 items-center rounded-pequeno px-2 text-base font-medium text-tinta-media underline decoration-borda-forte underline-offset-4 hover:text-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
           >
             Ver loja
           </Link>
           {usuario ? (
-            <span className="hidden text-sm text-tinta-media sm:inline">
+            <span className="hidden text-base text-tinta-media md:inline">
               {usuario.email}
             </span>
           ) : null}
           <button
             type="button"
             onClick={() => void sair()}
-            className="flex min-h-11 items-center rounded-pequeno text-sm font-medium text-tinta-media hover:text-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento lg:min-h-0"
+            className="flex min-h-12 items-center rounded-card border border-borda-forte px-4 text-base font-semibold text-tinta hover:bg-superficie-sutil focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca"
           >
             Sair
           </button>
@@ -60,7 +60,7 @@ export function LayoutAdmin() {
       <div className="flex flex-1 flex-col lg:flex-row">
         <nav
           aria-label="Navegação do painel admin"
-          className="flex gap-1 overflow-x-auto border-b border-borda bg-superficie px-4 py-2 lg:w-56 lg:shrink-0 lg:flex-col lg:gap-1 lg:border-b-0 lg:border-r lg:p-3"
+          className="flex flex-wrap gap-1 border-b border-borda bg-superficie px-4 py-2 lg:w-60 lg:flex-nowrap lg:shrink-0 lg:flex-col lg:gap-1 lg:border-b-0 lg:border-r lg:p-3"
         >
           {LINKS.map((link) => (
             <NavLink
@@ -68,10 +68,10 @@ export function LayoutAdmin() {
               to={link.para}
               end={link.fim}
               className={({ isActive }) =>
-                `flex min-h-11 shrink-0 items-center rounded-pequeno px-3 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento lg:min-h-0 ${
+                `flex min-h-12 shrink-0 items-center rounded-pequeno border-l-4 px-3 py-2 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca ${
                   isActive
-                    ? 'bg-acento-suave text-acento-escuro'
-                    : 'text-tinta-media hover:bg-superficie-sutil hover:text-tinta'
+                    ? 'border-acento bg-acento-suave font-semibold text-acento-escuro'
+                    : 'border-transparent font-medium text-tinta-media hover:bg-superficie-sutil hover:text-tinta'
                 }`
               }
             >
